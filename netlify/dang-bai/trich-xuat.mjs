@@ -85,29 +85,45 @@ async function taiQuaTrinhDuyetAo(url) {
   return r.text();
 }
 
-// Đọc bài: tải bình thường trước; nếu trang gần như rỗng thì mở lại bằng trình duyệt ảo.
-export async function trichXuat(url) {
-  url = (url || "").trim();
-  if (!/^https?:\/\//i.test(url)) throw new LoiNguoiDung("Đường dẫn phải bắt đầu bằng http:// hoặc https://");
-  let kq = null, loiTai = null, urlCuoi = url;
+async function docNhanh(url) {
   try {
     const t = await taiTrang(url);
-    urlCuoi = t.urlCuoi;
-    kq = phanTich(t.html, url, urlCuoi);
+    return { kq: phanTich(t.html, url, t.urlCuoi), loiTai: null, urlCuoi: t.urlCuoi };
   } catch (e) {
     if (!(e instanceof LoiNguoiDung)) throw e;
-    loiTai = e;
+    return { kq: null, loiTai: e, urlCuoi: url };
   }
+}
+
+// Dùng nội dung người dùng tự sao chép từ trang (Ctrl+A, Ctrl+C) khi máy không đọc được
+async function tuNoiDungDan(url, vanBan) {
+  let { kq } = await docNhanh(url).catch(() => ({ kq: null }));
+  kq = kq || { link_goc: url, ten_mien: new URL(url).hostname.replace(/^www\./, ""), tieu_de: "", mo_ta: "", anh_url: "", tieu_de_chac: false };
+  const dong = vanBan.normalize("NFC").split(/\r?\n/).map(chuanHoa).filter((d) => d.length >= 3);
+  if (!dong.length) throw new LoiNguoiDung("Nội dung dán vào đang trống.");
+  // tiêu đề: dòng đầu tiên đủ dài (bỏ qua các dòng menu ngắn)
+  if (!kq.tieu_de_chac) kq.tieu_de = dong.find((d) => d.length >= 20 && d.length <= 200 && !d.endsWith(":")) || dong[0].slice(0, 200);
+  kq.noi_dung = (dong.filter((d) => d.length >= 40).join("\n\n") || dong.join("\n\n")).slice(0, 60000);
+  return { ...kq, cach_doc: "Dùng nội dung anh dán vào" };
+}
+
+// Đọc bài: tải bình thường trước; nếu trang gần như rỗng thì mở lại bằng trình duyệt ảo.
+// Người dùng cũng có thể tự dán nội dung bài (noiDungDan) khi máy không đọc được.
+export async function trichXuat(url, noiDungDan) {
+  url = (url || "").trim();
+  if (!/^https?:\/\//i.test(url)) throw new LoiNguoiDung("Đường dẫn phải bắt đầu bằng http:// hoặc https://");
+  if (noiDungDan) return tuNoiDungDan(url, noiDungDan);
+  let { kq, loiTai, urlCuoi } = await docNhanh(url);
   if (kq && kq.noi_dung.length >= 400) return { ...kq, cach_doc: "Đọc trực tiếp" };
   try {
     const kqAo = phanTich(await taiQuaTrinhDuyetAo(url), url, urlCuoi);
     if (!kq || kqAo.noi_dung.length > kq.noi_dung.length) {
-      return { ...kqAo, cach_doc: "Đọc bằng trình duyệt ảo (trang tải nội dung bằng JavaScript)" };
+      return { ...kqAo, cach_doc: "Đọc bằng trình duyệt ảo (trang tải nội dung bằng JavaScript)", it_chu: kqAo.noi_dung.length < 400 };
     }
   } catch {}
-  if (kq) return { ...kq, cach_doc: "Đọc trực tiếp (trang có ít chữ)" };
+  if (kq) return { ...kq, cach_doc: "Đọc trực tiếp (trang có ít chữ)", it_chu: true };
   if (loiTai && loiTai.message.includes("từ chối")) throw loiTai;
-  throw new LoiNguoiDung("Không tìm thấy tiêu đề hay nội dung, kể cả khi mở bằng trình duyệt ảo. Trang có thể cần đăng nhập.");
+  throw new LoiNguoiDung("Không đọc được trang này. Hãy mở bài, bấm Ctrl+A rồi Ctrl+C và dán nội dung vào ô \"Dán nội dung bài\" bên dưới.");
 }
 
 function phanTich(html, url, urlCuoi) {
@@ -129,6 +145,7 @@ function phanTich(html, url, urlCuoi) {
   const trongBai = (el) => $(el).parents().toArray().some((p) =>
     p.tagName === "article" || KHOI_BAI.test(`${$(p).attr("class") || ""} ${$(p).attr("id") || ""}`));
 
+  const tieuDeChac = !!(meta["og:title"] || meta["twitter:title"] || baiLd.headline || $("h1").first().text().trim());
   let tieuDe = chuanHoa(meta["og:title"] || meta["twitter:title"] || baiLd.headline || $("h1").first().text() || $("title").first().text());
   tieuDe = boTenTrang(tieuDe, meta["og:site_name"] || "", new URL(urlCuoi).hostname);
   const moTa = chuanHoa(meta["og:description"] || meta["description"] || meta["twitter:description"] || baiLd.description || "");
@@ -166,6 +183,7 @@ function phanTich(html, url, urlCuoi) {
     mo_ta: moTa,
     noi_dung: noiDung.join("\n\n"),
     anh_url: anh,
+    tieu_de_chac: tieuDeChac,
   };
 }
 

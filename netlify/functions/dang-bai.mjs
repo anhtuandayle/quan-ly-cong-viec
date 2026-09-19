@@ -1,9 +1,9 @@
 // Bộ điều phối của ứng dụng "Đăng bài đa kênh" trên Netlify: mọi đường dẫn /api/dang-bai/...
 import { randomUUID } from "node:crypto";
-import { LoiAI, taoBaiAI, taoCongThucAI } from "../dang-bai/tri-tue.mjs";
-import { GIOI_HAN_BAI, dongCuoi, ghepBai, taoBaiDonGian } from "../dang-bai/bai-dang.mjs";
+import { LoiAI, aiDangDung, taoBaiAI, taoCongThucAI } from "../dang-bai/tri-tue.mjs";
+import { GIOI_HAN_BAI, catTheoCau, dongCuoi, ghepBai, nganSach, taoBaiDonGian } from "../dang-bai/bai-dang.mjs";
 import { GIOI_HAN_TOM_TAT, LoiNguoiDung, chuanHoa, doDai, tomTatDonGian, trichXuat } from "../dang-bai/trich-xuat.mjs";
-import { guiAnToan } from "../dang-bai/phan-phoi.mjs";
+import { dien, guiAnToan } from "../dang-bai/phan-phoi.mjs";
 import { moKho } from "../dang-bai/kho.mjs";
 import {
   TEN_COOKIE, bamMatKhau, dungMaKichHoat, dungMatKhau, phienHopLe, taoBiMatPhien, taoPhien,
@@ -59,14 +59,17 @@ function kiemTraCongThuc(ct) {
   if (!["json", "form", "multipart"].includes(ct.gui.kieu_than || "json")) throw new LoiNguoiDung("kieu_than phải là json, form hoặc multipart.");
   if (ct.gui.than && (typeof ct.gui.than !== "object" || Array.isArray(ct.gui.than))) throw new LoiNguoiDung("Phần 'than' phải là một đối tượng JSON.");
   for (const t of ct.truong || []) if (!/^[A-Za-z0-9_]+$/.test(t.khoa || "")) throw new LoiNguoiDung(`Tên trường không hợp lệ: ${t.khoa}`);
+  const buoc = ct.buoc_truoc || [];
+  if (!Array.isArray(buoc) || buoc.some((b) => !b || typeof b !== "object" || !b.dia_chi)) {
+    throw new LoiNguoiDung("Phần 'buoc_truoc' phải là danh sách các yêu cầu, mỗi yêu cầu có 'dia_chi'.");
+  }
 }
 
 const che = (v) => (v.length > 8 ? "••••" + v.slice(-4) : "••••");
 function ketNoiCongKhai(kn) {
   const ct = kn.cong_thuc;
-  const dc = ct.gui.dia_chi.trim();
   let mayChu = "(địa chỉ bạn nhập)";
-  if (!dc.startsWith("{{")) { try { mayChu = new URL(dc.replace(/\{\{[^}]*\}\}/g, "x")).host; } catch {} }
+  try { mayChu = new URL(dien(ct.gui.dia_chi, { truong: kn.gia_tri }, true)[0]).host || mayChu; } catch {}
   return {
     id: kn.id, ten: kn.ten, bat: kn.bat, may_chu: mayChu, nguon: ct.nguon || "",
     truong: (ct.truong || []).map((t) => {
@@ -94,7 +97,11 @@ export default async (req) => {
     const dl = pt === "POST" ? await req.json().catch(() => ({})) : {};
 
     if (duong === "/trang-thai") {
-      return traJson({ da_thiet_lap: daThietLap, da_dang_nhap: daDangNhap, ai: daDangNhap && !!caiDat.chia_khoa_claude, gioi_han: GIOI_HAN_TOM_TAT });
+      return traJson({
+        da_thiet_lap: daThietLap, da_dang_nhap: daDangNhap, gioi_han: GIOI_HAN_TOM_TAT,
+        ai: daDangNhap ? aiDangDung(caiDat) : "",
+        co_gemini: daDangNhap && !!caiDat.chia_khoa_gemini, co_claude: daDangNhap && !!caiDat.chia_khoa_claude,
+      });
     }
 
     // Đặt mật khẩu lần đầu, hoặc đặt lại khi quên — đều cần mã kích hoạt
@@ -139,13 +146,14 @@ export default async (req) => {
 
     if (duong === "/trich-xuat" && pt === "POST") {
       const batDau = Date.now();
-      const bai = await trichXuat(String(dl.url || ""));
+      const bai = await trichXuat(String(dl.url || ""), String(dl.noi_dung_dan || "").trim() || undefined);
       const link = bai.link_goc;
       let nguon = "Tự động (trích câu chính)", canhBao = "", kqAI = null;
-      if (caiDat.chia_khoa_claude) {
+      const ai = aiDangDung(caiDat);
+      if (ai) {
         try {
-          kqAI = await taoBaiAI(caiDat.chia_khoa_claude, bai.tieu_de, bai.noi_dung || bai.mo_ta, link, batDau + 55_000);
-          nguon = "AI (Claude)";
+          kqAI = await taoBaiAI(caiDat, bai.tieu_de, bai.noi_dung || bai.mo_ta, link, batDau + 55_000);
+          nguon = `AI ${ai}`;
         } catch (e) { canhBao = `AI chưa viết được (${e.message}), đã dùng cách tự động.`; }
       }
       const tuDong = kqAI ? null : taoBaiDonGian(bai.tieu_de, bai.mo_ta, bai.noi_dung, link);
@@ -164,8 +172,8 @@ export default async (req) => {
       if (!ten) return loi("Anh/chị hãy gõ tên nền tảng.");
       const mau = await timCongThucMau(goc, ten);
       if (mau) return traJson(mau);
-      if (caiDat.chia_khoa_claude) {
-        const kq = await taoCongThucAI(caiDat.chia_khoa_claude, ten);
+      if (aiDangDung(caiDat)) {
+        const kq = await taoCongThucAI(caiDat, ten, Date.now() + 55_000);
         return traJson(kq.khong_the ? await congThucWebhook(goc, ten, kq.khong_the) : kq);
       }
       return traJson(await congThucWebhook(goc, ten,
@@ -216,17 +224,25 @@ export default async (req) => {
       if (doDai(bai.noi_dung) > GIOI_HAN_BAI[loai]) {
         return loi(`Bài ${loai === "ngan" ? "ngắn" : "dài"} đang ${doDai(bai.noi_dung)} ký tự — tối đa ${GIOI_HAN_BAI[loai]}.`);
       }
+      // cả 2 bản đều gửi kèm, cho nền tảng giới hạn chữ (vd Mastodon, Pinterest 500 ký tự) luôn dùng bản ngắn
+      for (const l of Object.keys(GIOI_HAN_BAI)) {
+        const t = String(dl[`than_${l}`] || "").replace(/\r/g, "").normalize("NFC").trim() || than;
+        bai[`bai_${l}`] = ghepBai(catTheoCau(t, nganSach(l, bai.link_goc)), bai.link_goc);
+      }
       const dangBat = ((await kho.doc("ket-noi")) || []).filter((kn) => kn.bat);
       if (!dangBat.length) return loi("Chưa bật nền tảng nào để đăng.");
       return traJson({ ket_qua: await Promise.all(dangBat.map((kn) => guiAnToan(kn, bai))) });
     }
 
     if (duong === "/cai-dat" && pt === "POST") {
-      const khoa = String(dl.chia_khoa_claude || "").trim();
-      if (khoa && !khoa.startsWith("sk-ant-")) return loi("Chìa khoá Claude thường bắt đầu bằng sk-ant-… Anh/chị kiểm tra lại nhé.");
-      caiDat.chia_khoa_claude = khoa;
+      for (const [loai, dau, ten] of [["gemini", "AIza", "Gemini"], ["claude", "sk-ant-", "Claude"]]) {
+        if (!(`chia_khoa_${loai}` in dl)) continue;
+        const khoa = String(dl[`chia_khoa_${loai}`] || "").trim();
+        if (khoa && !khoa.startsWith(dau)) return loi(`Chìa khoá ${ten} thường bắt đầu bằng ${dau}… Anh/chị kiểm tra lại nhé.`);
+        caiDat[`chia_khoa_${loai}`] = khoa;
+      }
       await kho.ghi("cai-dat", caiDat);
-      return traJson({ ai: !!khoa });
+      return traJson({ ai: aiDangDung(caiDat) });
     }
 
     return loi("Không có chức năng này", 404);

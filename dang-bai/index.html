@@ -76,6 +76,8 @@
   .chon-bai input { accent-color: var(--xanh); width: 16px; height: 16px; }
   .dau-the-bai .dem { float: none; }
   .dong-khoa { font-size: 13px; color: var(--chu-phu); background: var(--nen); border-radius: 8px; padding: 7px 10px; margin: 6px 0 8px; word-break: break-all; }
+  .o-dan { margin: 8px 0; font-size: 13.5px; background: #fff; }
+  .hop-dan-nho { font-size: 13.5px; color: var(--chu-phu); margin-top: 8px; }
   .xem-truoc { margin-top: 20px; border-top: 1px solid var(--vien); padding-top: 18px; }
   .xem-truoc h3 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--chu-phu); }
   .bai-dang { border: 1px solid var(--vien); border-radius: 12px; overflow: hidden; max-width: 520px; background: #fff; box-shadow: 0 1px 3px rgba(16,24,40,.06); }
@@ -143,6 +145,10 @@
   .hop-khoa { width: min(420px, 100%); box-shadow: 0 20px 50px rgba(16,24,40,.12); }
   body.dang-khoa { overflow: hidden; }
   @media (max-width: 640px) { header .chip:first-child { display: none; } }
+  .hop-ai { background: var(--nen); border-radius: 10px; padding: 12px 14px; margin-top: 12px; font-size: 14px; }
+  .hop-ai ol { margin: 6px 0 10px; padding-left: 20px; }
+  .hop-ai summary { cursor: pointer; }
+  .hop-ai a { color: var(--xanh); }
   dialog { border: 0; border-radius: 16px; padding: 22px; width: min(520px, calc(100vw - 32px)); box-shadow: 0 20px 50px rgba(16,24,40,.25); }
   dialog::backdrop { background: rgba(16,24,40,.45); }
   dialog h3 { margin: 0 0 6px; }
@@ -196,6 +202,7 @@
       <button class="nut" id="nutLay">Lấy bài</button>
     </form>
     <div class="trang-thai" id="ttLay"></div>
+    <div id="vungDanLoi"></div>
   </section>
 
   <div class="luoi">
@@ -236,16 +243,28 @@
 
 <dialog id="hopCaiDat">
   <h3>Cài đặt AI (không bắt buộc)</h3>
-  <p>Có AI, hệ thống sẽ <b>tóm tắt hay hơn</b> và <b>tự tìm cách kết nối</b> với nền tảng mới. Không có AI, ứng dụng vẫn chạy bình thường.</p>
-  <p>Chìa khoá Claude (API key) lấy tại <b>console.anthropic.com</b> → API Keys. Chìa khoá chỉ lưu trên máy này.</p>
-  <label class="nhan" for="oChiaKhoa">Chìa khoá Claude</label>
-  <div class="o-bi-mat">
-    <input type="password" id="oChiaKhoa" placeholder="sk-ant-..." autocomplete="off">
+  <p>Có AI, hệ thống <b>viết bài đăng hay hơn</b> và <b>tự tìm cách kết nối</b> nền tảng mới. Không có AI, ứng dụng vẫn chạy bình thường.</p>
+  <div class="hop-ai">
+    <b>① Gemini của Google — MIỄN PHÍ (khuyên dùng)</b>
+    <ol>
+      <li>Vào <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>, đăng nhập bằng Gmail.</li>
+      <li>Bấm <b>Create API key</b> (Tạo khoá API) → sao chép dãy bắt đầu bằng <b>AIza…</b></li>
+      <li>Dán vào ô dưới rồi bấm Lưu. Không cần thẻ ngân hàng.</li>
+    </ol>
+    <input type="password" id="oGemini" placeholder="AIza..." autocomplete="off" aria-label="Chìa khoá Gemini">
+    <div class="goi-y" id="ghiGemini"></div>
   </div>
+  <details class="hop-ai">
+    <summary><b>② Claude — trả phí theo lượt (tuỳ chọn)</b></summary>
+    <p>Lấy tại <b>console.anthropic.com</b> → API Keys (cần nạp tiền trước).</p>
+    <input type="password" id="oClaude" placeholder="sk-ant-..." autocomplete="off" aria-label="Chìa khoá Claude">
+    <div class="goi-y" id="ghiClaude"></div>
+  </details>
+  <p class="goi-y">Có cả hai thì hệ thống dùng Gemini (miễn phí). Gói miễn phí của Google cho khoảng vài trăm lượt/ngày; nội dung gửi lên có thể được Google dùng để cải thiện AI. Chìa khoá được cất riêng, không hiện lại trên trang.</p>
   <div class="trang-thai" id="ttCaiDat"></div>
   <div class="hang-nut">
     <button class="nut" id="nutLuuCaiDat">Lưu</button>
-    <button class="nut phu" id="nutTatAI">Tắt AI</button>
+    <button class="nut phu" id="nutTatAI">Xoá chìa khoá (tắt AI)</button>
     <button class="nut chu" id="nutDongCaiDat">Đóng</button>
   </div>
 </dialog>
@@ -327,26 +346,42 @@ function hienTT(el, noiDung, loi = false, xoay = false) {
 /* ---------------- Cài đặt AI ---------------- */
 function veAI() {
   const c = $("#chipAI");
-  c.textContent = trangThai.ai ? "AI: đang bật" : "AI: chưa bật";
-  c.classList.toggle("bat", trangThai.ai);
+  c.textContent = trangThai.ai ? `AI: ${trangThai.ai}` : "AI: chưa bật";
+  c.classList.toggle("bat", !!trangThai.ai);
 }
-$("#nutCaiDat").onclick = () => { $("#oChiaKhoa").value = ""; hienTT($("#ttCaiDat"), trangThai.ai ? "AI đang bật. Dán chìa khoá mới nếu muốn đổi." : ""); $("#hopCaiDat").showModal(); };
+$("#nutCaiDat").onclick = () => {
+  $("#oGemini").value = ""; $("#oClaude").value = "";
+  $("#ghiGemini").textContent = trangThai.coGemini ? "✓ Đã có chìa khoá Gemini. Dán chìa khoá mới nếu muốn đổi." : "";
+  $("#ghiClaude").textContent = trangThai.coClaude ? "✓ Đã có chìa khoá Claude." : "";
+  hienTT($("#ttCaiDat"), trangThai.ai ? `Đang dùng AI: ${trangThai.ai}` : "");
+  $("#hopCaiDat").showModal();
+};
 $("#nutDongCaiDat").onclick = () => $("#hopCaiDat").close();
-async function luuCaiDat(khoa) {
+async function luuCaiDat(duLieu) {
   try {
-    const kq = await goi("/cai-dat", "POST", { chia_khoa_claude: khoa });
-    trangThai.ai = kq.ai; veAI();
-    hienTT($("#ttCaiDat"), kq.ai ? "Đã lưu. AI đang bật." : "Đã tắt AI.");
-    setTimeout(() => $("#hopCaiDat").close(), 700);
+    const kq = await goi("/cai-dat", "POST", duLieu);
+    trangThai.ai = kq.ai;
+    if ("chia_khoa_gemini" in duLieu) trangThai.coGemini = !!duLieu.chia_khoa_gemini;
+    if ("chia_khoa_claude" in duLieu) trangThai.coClaude = !!duLieu.chia_khoa_claude;
+    veAI();
+    hienTT($("#ttCaiDat"), kq.ai ? `Đã lưu. Đang dùng AI: ${kq.ai}.` : "Đã tắt AI.");
+    setTimeout(() => $("#hopCaiDat").close(), 900);
   } catch (e) { hienTT($("#ttCaiDat"), e.message, true); }
 }
-$("#nutLuuCaiDat").onclick = () => { const k = $("#oChiaKhoa").value.trim(); if (k) luuCaiDat(k); else hienTT($("#ttCaiDat"), "Chưa dán chìa khoá.", true); };
-$("#nutTatAI").onclick = () => luuCaiDat("");
+$("#nutLuuCaiDat").onclick = () => {
+  const g = $("#oGemini").value.trim(), c = $("#oClaude").value.trim(), d = {};
+  if (g) d.chia_khoa_gemini = g;
+  if (c) d.chia_khoa_claude = c;
+  if (!g && !c) return hienTT($("#ttCaiDat"), "Chưa dán chìa khoá nào.", true);
+  luuCaiDat(d);
+};
+$("#nutTatAI").onclick = () => { if (confirm("Xoá cả chìa khoá Gemini và Claude?")) luuCaiDat({ chia_khoa_gemini: "", chia_khoa_claude: "" }); };
 
 /* ---------------- Bước 1: lấy bài ---------------- */
 $("#formLink").onsubmit = async (ev) => {
   ev.preventDefault();
   const url = $("#oLink").value.trim();
+  $("#vungDanLoi").innerHTML = "";
   const nut = $("#nutLay");
   nut.disabled = true;
   hienTT($("#ttLay"), trangThai.ai ? "Đang đọc bài và nhờ AI viết bài đăng (có thể mất 20–40 giây)…" : "Đang đọc bài (trang dạng ứng dụng có thể mất 10–20 giây)…", false, true);
@@ -358,6 +393,7 @@ $("#formLink").onsubmit = async (ev) => {
     $("#bangKetQua").innerHTML = "";
   } catch (e) {
     hienTT($("#ttLay"), e.message, true);
+    if (/^https?:\/\//.test(url)) hopDan($("#vungDanLoi"), false, url);
   } finally { nut.disabled = false; capNhatNutDang(); }
 };
 
@@ -374,6 +410,7 @@ function veVungSua() {
   const b = trangThai.bai;
   b.loai_bai = b.loai_bai || "ngan";
   $("#vungSua").innerHTML = `
+    <div id="vungDan"></div>
     <label class="nhan" for="oTieuDe">Tiêu đề</label>
     <input type="text" id="oTieuDe" value="${esc(b.tieu_de)}">
     <div class="goi-y">${esc(b.cach_doc || "")}</div>
@@ -416,6 +453,11 @@ function veVungSua() {
 
     ${b.noi_dung ? `<details class="toan-van"><summary>Xem nội dung toàn văn đã lấy (${b.so_chu.toLocaleString("vi")} chữ)</summary><div>${esc(b.noi_dung)}</div></details>` : ""}
   `;
+  if (b.it_chu) hopDan($("#vungDan"), true, b.link_goc);
+  else if (b.cach_doc !== "Dùng nội dung anh dán vào") {
+    $("#vungDan").innerHTML = `<details class="hop-dan-nho"><summary>Nội dung lấy chưa đúng bài? Tự dán nội dung</summary><div></div></details>`;
+    hopDan($("#vungDan div"), false, b.link_goc);
+  }
   $("#oTieuDe").oninput = (e) => { b.tieu_de = e.target.value; veXemTruoc(); };
   $("#oTomTat").oninput = (e) => { b.tom_tat = e.target.value; veXemTruoc(); };
   for (const loai of ["ngan", "dai"]) $("#o_" + loai).oninput = (e) => { b["bai_" + loai] = e.target.value; veXemTruoc(); };
@@ -428,6 +470,32 @@ function veVungSua() {
   $("#oAnh").onchange = chonAnh;
   $("#nutAnhGoc").onclick = () => { b.anh_tai_len = null; veXemTruoc(); };
   veXemTruoc();
+}
+function hopDan(noiChen, noiBat, url) {
+  noiChen.innerHTML = `
+    <div class="${noiBat ? "canh-bao" : "hop-dan-nho"}">
+      ${noiBat ? "<b>Trang này máy chỉ đọc được rất ít chữ</b> — thường do trang tải nội dung bằng JavaScript hoặc cần đăng nhập.<br>" : ""}
+      Cách xử lý: mở bài trong trình duyệt → bấm <b>Ctrl+A</b> rồi <b>Ctrl+C</b> → dán vào ô dưới → bấm nút.
+      <textarea class="o-dan" rows="4" placeholder="Dán toàn bộ nội dung bài vào đây…"></textarea>
+      <button type="button" class="nut phu nho nut-dan">Soạn lại từ nội dung này</button>
+      <div class="trang-thai tt-dan"></div>
+    </div>`;
+  const nut = noiChen.querySelector(".nut-dan");
+  nut.onclick = async () => {
+    const vb = noiChen.querySelector(".o-dan").value.trim();
+    const tt = noiChen.querySelector(".tt-dan");
+    if (vb.length < 50) return hienTT(tt, "Hãy dán nhiều nội dung hơn (ít nhất vài câu).", true);
+    nut.disabled = true;
+    hienTT(tt, trangThai.ai ? "Đang nhờ AI viết bài đăng…" : "Đang soạn…", false, true);
+    try {
+      const bai = await goi("/trich-xuat", "POST", { url, noi_dung_dan: vb });
+      trangThai.bai = { ...bai, anh_tai_len: null };
+      hienTT($("#ttLay"), `Đã soạn từ nội dung anh dán (${bai.so_chu.toLocaleString("vi")} chữ).`);
+      $("#vungDanLoi").innerHTML = "";
+      veVungSua();
+    } catch (e) { hienTT(tt, e.message, true); }
+    finally { nut.disabled = false; capNhatNutDang(); }
+  };
 }
 function veXemTruoc() {
   const b = trangThai.bai;
@@ -626,6 +694,7 @@ $("#nutDang").onclick = async () => {
     const kq = await goi("/dang-bai", "POST", {
       tieu_de: gon(b.tieu_de), tom_tat: gon(b.tom_tat), link_goc: b.link_goc,
       loai_bai: b.loai_bai, than_bai: thanBai(b.loai_bai),
+      than_ngan: thanBai("ngan"), than_dai: thanBai("dai"),
       anh_url: b.anh_url, anh_tai_len: b.anh_tai_len,
     });
     veBang(kq.ket_qua);
@@ -662,7 +731,7 @@ async function khoiDong() {
     const tt = await goi("/trang-thai");
     if (!tt.da_thiet_lap) return hienManKhoa("thiet-lap");
     if (!tt.da_dang_nhap) return hienManKhoa("dang-nhap");
-    trangThai.ai = tt.ai; veAI();
+    trangThai.ai = tt.ai; trangThai.coGemini = tt.co_gemini; trangThai.coClaude = tt.co_claude; veAI();
     await taiKetNoi();
   } catch (e) {
     hienTT($("#ttLay"), "Không kết nối được với máy chủ: " + e.message, true);

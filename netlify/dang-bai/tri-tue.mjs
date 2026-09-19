@@ -1,18 +1,80 @@
-// Phần AI (tuỳ chọn): dùng Claude để tóm tắt bài và tự tìm cách kết nối một nền tảng bất kỳ.
+// Phần AI (tuỳ chọn): viết bài đăng social và tự tìm cách kết nối một nền tảng bất kỳ.
+// Hỗ trợ 2 nguồn AI, người dùng dán chìa khoá trong phần Cài đặt:
+// - Google Gemini: có gói MIỄN PHÍ (ưu tiên dùng nếu có chìa khoá)
+// - Claude (Anthropic): trả phí theo lượt dùng
 import Anthropic from "@anthropic-ai/sdk";
 import { GIOI_HAN_TOM_TAT, chuanHoa, doDai, rutGon } from "./trich-xuat.mjs";
 import { catTheoCau, nganSach } from "./bai-dang.mjs";
 
-const MO_HINH = "claude-opus-5";
+const MO_HINH_CLAUDE = "claude-opus-5";
+const GEMINI_GOC = process.env.GEMINI_GOC || "https://generativelanguage.googleapis.com";
+// Thử lần lượt: mô hình nào hết lượt miễn phí / không có thì chuyển sang mô hình kế tiếp
+const MO_HINH_GEMINI = ["gemini-3.5-flash", "gemini-2.5-flash", "gemini-2.5-flash-lite"];
 
 export class LoiAI extends Error {}
 
-async function goi(chiaKhoa, loiNhac, schema, effort, thoiGian = 50_000) {
-  const may = new Anthropic({ apiKey: chiaKhoa, timeout: thoiGian, maxRetries: 0 }); // Netlify cho tối đa 60 giây
+export const aiDangDung = (caiDat) => (caiDat.chia_khoa_gemini ? "Gemini (miễn phí)" : caiDat.chia_khoa_claude ? "Claude" : "");
+
+// ---------------------------------------------------------------- gọi AI
+
+// Đổi khuôn JSON Schema sang dạng Gemini hiểu (kiểu viết HOA, không có additionalProperties)
+function schemaGemini(s) {
+  const kq = { type: s.type.toUpperCase() };
+  if (s.enum) kq.enum = s.enum;
+  if (s.properties) {
+    kq.properties = Object.fromEntries(Object.entries(s.properties).map(([k, v]) => [k, schemaGemini(v)]));
+    kq.required = s.required || Object.keys(s.properties);
+  }
+  if (s.items) kq.items = schemaGemini(s.items);
+  return kq;
+}
+
+async function goiGemini(chiaKhoa, loiNhac, schema, hanChot) {
+  const than = JSON.stringify({
+    contents: [{ role: "user", parts: [{ text: loiNhac }] }],
+    generationConfig: { responseMimeType: "application/json", responseSchema: schemaGemini(schema) },
+  });
+  let loiCuoi = "Gemini không trả lời.";
+  for (const moHinh of MO_HINH_GEMINI) {
+    const conLai = hanChot - Date.now();
+    if (conLai < 5000) { loiCuoi = "Hết thời gian chờ AI."; break; }
+    let r;
+    try {
+      r = await fetch(`${GEMINI_GOC}/v1beta/models/${moHinh}:generateContent`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": chiaKhoa },
+        body: than,
+        signal: AbortSignal.timeout(conLai),
+      });
+    } catch (e) {
+      throw new LoiAI(e.name === "TimeoutError" ? "Gemini trả lời quá lâu, thử lại lần nữa nhé." : "Không kết nối được tới Gemini.");
+    }
+    const kq = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      const thongBao = kq.error?.message || "";
+      if (r.status === 400 && /api key/i.test(thongBao)) throw new LoiAI("Chìa khoá Gemini không đúng. Vào Cài đặt để dán lại.");
+      if (r.status === 403) throw new LoiAI("Chìa khoá Gemini không có quyền (hãy tạo chìa khoá mới trong Google AI Studio).");
+      if ([404, 429, 500, 503].includes(r.status)) { // mô hình không có / hết lượt miễn phí / quá tải → thử mô hình khác
+        loiCuoi = r.status === 429 ? "Đã hết lượt Gemini miễn phí (theo phút hoặc theo ngày). Đợi một lúc rồi thử lại." : `Gemini báo lỗi ${r.status}.`;
+        continue;
+      }
+      throw new LoiAI(`Gemini báo lỗi ${r.status}: ${thongBao.slice(0, 200)}`);
+    }
+    if (kq.promptFeedback?.blockReason) throw new LoiAI("Gemini từ chối xử lý bài này.");
+    const ungVien = kq.candidates?.[0] || {};
+    const vanBan = (ungVien.content?.parts || []).filter((p) => !p.thought).map((p) => p.text || "").join("");
+    if (!vanBan.trim()) { loiCuoi = `Gemini không trả lời (${ungVien.finishReason || "không rõ lý do"}).`; continue; }
+    try { return JSON.parse(vanBan); } catch { loiCuoi = "Gemini trả lời sai định dạng."; }
+  }
+  throw new LoiAI(loiCuoi);
+}
+
+async function goiClaude(chiaKhoa, loiNhac, schema, effort, hanChot) {
+  const may = new Anthropic({ apiKey: chiaKhoa, timeout: Math.max(5000, hanChot - Date.now()), maxRetries: 0 }); // Netlify cho tối đa 60 giây
   let r;
   try {
     r = await may.beta.messages.create({
-      model: MO_HINH,
+      model: MO_HINH_CLAUDE,
       max_tokens: 16000,
       // Nếu mô hình chính từ chối, máy chủ Claude tự chuyển sang mô hình dự phòng phù hợp.
       betas: ["server-side-fallback-2026-07-01"],
@@ -37,18 +99,25 @@ async function goi(chiaKhoa, loiNhac, schema, effort, thoiGian = 50_000) {
   try { return JSON.parse(vanBan); } catch { throw new LoiAI("Claude trả lời sai định dạng. Thử lại nhé."); }
 }
 
+// hanChot = thời điểm (ms) phải xong, để cả lượt xử lý không vượt 60 giây của Netlify
+export function goiAI(caiDat, loiNhac, schema, effort, hanChot) {
+  if (caiDat.chia_khoa_gemini) return goiGemini(caiDat.chia_khoa_gemini, loiNhac, schema, hanChot);
+  if (caiDat.chia_khoa_claude) return goiClaude(caiDat.chia_khoa_claude, loiNhac, schema, effort, hanChot);
+  throw new LoiAI("Chưa bật AI.");
+}
+
 // ---------------------------------------------------------------- bài đăng social 2 dạng
 
+const chuoi = { type: "string" };
 const KHUON_BAI = {
   type: "object",
-  properties: { tom_tat: { type: "string" }, bai_ngan: { type: "string" }, bai_dai: { type: "string" } },
+  properties: { tom_tat: chuoi, bai_ngan: chuoi, bai_dai: chuoi },
   required: ["tom_tat", "bai_ngan", "bai_dai"],
   additionalProperties: false,
 };
 
 // Một lần gọi AI: câu tóm tắt < 140 ký tự + bài ngắn + bài dài (chưa gồm dòng link cuối).
-// hanChot = thời điểm (ms) phải xong, để cả lượt xử lý không vượt 60 giây của Netlify.
-export async function taoBaiAI(chiaKhoa, tieuDe, noiDung, link, hanChot) {
+export async function taoBaiAI(caiDat, tieuDe, noiDung, link, hanChot) {
   const hanNgan = nganSach("ngan", link), hanDai = nganSach("dai", link);
   const loiNhac = `Bạn là người viết nội dung mạng xã hội cho một thương hiệu. Dựa vào bài viết bên dưới, viết:
 
@@ -66,24 +135,23 @@ Yêu cầu chung:
 <bai_viet>
 ${noiDung.slice(0, 60000)}
 </bai_viet>`;
-  const conLai = () => Math.max(5_000, hanChot - Date.now());
-  const kq = await goi(chiaKhoa, loiNhac, KHUON_BAI, "low", conLai());
-  let ngan = kq.bai_ngan.trim(), dai = kq.bai_dai.trim();
+  const kq = await goiAI(caiDat, loiNhac, KHUON_BAI, "low", hanChot);
+  let ngan = String(kq.bai_ngan || "").trim(), dai = String(kq.bai_dai || "").trim();
   if ((doDai(ngan) > hanNgan || doDai(dai) > hanDai) && hanChot - Date.now() > 20_000) {
     try {
-      const sua = await goi(chiaKhoa, `${loiNhac}
+      const sua = await goiAI(caiDat, `${loiNhac}
 
-Lần trước bạn viết bài ngắn ${doDai(ngan)} ký tự (giới hạn ${hanNgan}) và bài dài ${doDai(dai)} ký tự (giới hạn ${hanDai}). Hãy viết lại cho đúng giới hạn.`, KHUON_BAI, "low", conLai());
-      ngan = sua.bai_ngan.trim(); dai = sua.bai_dai.trim();
+Lần trước bạn viết bài ngắn ${doDai(ngan)} ký tự (giới hạn ${hanNgan}) và bài dài ${doDai(dai)} ký tự (giới hạn ${hanDai}). Hãy viết lại cho đúng giới hạn.`, KHUON_BAI, "low", hanChot);
+      ngan = String(sua.bai_ngan || ngan).trim(); dai = String(sua.bai_dai || dai).trim();
     } catch {} // hết giờ thì dùng bản cũ, cắt gọn bên dưới
   }
+  if (!ngan || !dai) throw new LoiAI("AI trả về bài trống.");
   // chốt chặn cuối: luôn trong giới hạn
-  return { tom_tat: rutGon(chuanHoa(kq.tom_tat)), ngan: catTheoCau(ngan, hanNgan), dai: catTheoCau(dai, hanDai) };
+  return { tom_tat: rutGon(chuanHoa(String(kq.tom_tat || ""))), ngan: catTheoCau(ngan, hanNgan), dai: catTheoCau(dai, hanDai) };
 }
 
 // ---------------------------------------------------------------- công thức kết nối
 
-const chuoi = { type: "string" };
 const KHUON_CONG_THUC = {
   type: "object",
   properties: {
@@ -124,12 +192,14 @@ Bài đăng gồm: tiêu đề, nội dung bài đăng (tối đa 1000 ký tự,
 Các biến có thể dùng trong dia_chi, tieu_de_http và than_json (viết đúng dạng {{...}}):
 - {{tieu_de}}, {{tom_tat}}, {{link_goc}}
 - {{noi_dung}} = bài đăng hoàn chỉnh (300–1000 ký tự), dòng cuối là đường dẫn bài gốc — nên dùng làm phần chữ của bài
+- {{bai_ngan}} = bản ngắn (tối đa 500 ký tự) — dùng khi nền tảng giới hạn 500 ký tự
 - {{anh_url}} = đường dẫn công khai của ảnh (có thể rỗng nếu người dùng tự tải ảnh lên)
 - {{anh_tep}} = tệp ảnh thật, CHỈ dùng khi kieu_than là "multipart" (khuyên dùng vì luôn có ảnh)
-- {{anh_base64}} = ảnh dạng base64
+- {{anh_base64}} = ảnh dạng base64; {{anh_kieu}} = kiểu ảnh (image/jpeg hoặc image/png)
 - {{noi_dung_html}} = bài đăng dạng HTML (ảnh + các đoạn <p> + link gốc bấm được) — dùng cho blog/website nhận HTML
 - {{basic_auth:truong.A|truong.B}} = chuỗi base64 của "A:B" cho xác thực Basic, dùng như "Authorization": "Basic {{basic_auth:truong.A|truong.B}}"
 - {{truong.KHOA}} = giá trị người dùng nhập cho trường có khoa = KHOA
+- Bộ lọc: {{tieu_de|cat:100}} cắt còn tối đa 100 ký tự.
 
 Quy tắc:
 - truong: chỉ các mã/ID người dùng phải tự cung cấp (token, ID trang, ID kênh...). khoa viết không dấu, chữ thường, gạch dưới. nhan và goi_y bằng tiếng Việt dễ hiểu. bi_mat = true với mọi loại mã bí mật.
@@ -141,23 +211,23 @@ Quy tắc:
 - Chỉ dùng API chính thức, địa chỉ HTTPS thật. Không bịa địa chỉ.
 - Nếu nền tảng KHÔNG thể đăng bài bằng một yêu cầu với mã tĩnh (vd bắt buộc ký OAuth 1.0, phải tải ảnh riêng qua nhiều bước, hoặc không có API đăng bài), đặt co_the_ket_noi = false, giải thích ngắn gọn bằng tiếng Việt trong ly_do_khong_the và gợi ý dùng Make.com hoặc Zapier (tạo kịch bản nhận Webhook rồi đăng lên ${ten}). Các trường còn lại để rỗng.`;
 
-export async function taoCongThucAI(chiaKhoa, ten) {
-  const kq = await goi(chiaKhoa, huongDanCongThuc(ten), KHUON_CONG_THUC, "medium");
+export async function taoCongThucAI(caiDat, ten, hanChot) {
+  const kq = await goiAI(caiDat, huongDanCongThuc(ten), KHUON_CONG_THUC, "medium", hanChot);
   if (!kq.co_the_ket_noi) return { khong_the: kq.ly_do_khong_the || `Chưa tìm được cách đăng thẳng lên ${ten}.` };
   let than;
-  try { than = kq.than_json.trim() ? JSON.parse(kq.than_json) : {}; } catch { throw new LoiAI("AI trả về công thức bị lỗi định dạng. Bấm tạo lại thử xem."); }
+  try { than = String(kq.than_json || "").trim() ? JSON.parse(kq.than_json) : {}; } catch { throw new LoiAI("AI trả về công thức bị lỗi định dạng. Bấm tạo lại thử xem."); }
   return {
     ten: kq.ten_hien_thi || ten,
     nguon: "AI tự tìm (nên gửi thử 1 bài trước)",
-    huong_dan: kq.huong_dan,
-    truong: kq.truong,
+    huong_dan: kq.huong_dan || "",
+    truong: kq.truong || [],
     gui: {
-      phuong_thuc: kq.phuong_thuc,
-      dia_chi: kq.dia_chi,
-      tieu_de_http: Object.fromEntries(kq.tieu_de_http.map((h) => [h.ten, h.gia_tri])),
-      kieu_than: kq.kieu_than,
+      phuong_thuc: kq.phuong_thuc || "POST",
+      dia_chi: kq.dia_chi || "",
+      tieu_de_http: Object.fromEntries((kq.tieu_de_http || []).map((h) => [h.ten, h.gia_tri])),
+      kieu_than: kq.kieu_than || "json",
       than,
     },
-    ket_qua: { thanh_cong_khi: kq.thanh_cong_khi, duong_dan_bai: kq.duong_dan_bai, thong_bao_loi: kq.thong_bao_loi },
+    ket_qua: { thanh_cong_khi: kq.thanh_cong_khi || "", duong_dan_bai: kq.duong_dan_bai || "", thong_bao_loi: kq.thong_bao_loi || "" },
   };
 }
