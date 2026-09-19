@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- Thư ký công việc · phiên bản 2026-09-19c · tự cập nhật qua GitHub -->
+<!-- Thư ký công việc · phiên bản 2026-09-19d · tự cập nhật qua GitHub -->
 <html lang="vi">
 <head>
 <meta charset="utf-8">
@@ -411,6 +411,27 @@ details.data-table th:first-child,details.data-table td:first-child{text-align:l
 .st{display:inline-flex;align-items:center;gap:4px;font-weight:700;font-size:13px;white-space:nowrap}
 .st.ok{color:var(--ok)} .st.mid{color:var(--amber)} .st.low{color:var(--red)} .st.na{color:var(--muted)}
 .pj-scope .dd span.on{background:var(--pcx);border-color:var(--pcx);color:var(--pc-on)}
+/* hợp đồng & nghiệm thu */
+.ct{display:grid;grid-template-columns:150px minmax(0,1fr);gap:14px 16px;align-items:start}
+.ct-lab{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding-top:12px}
+.ct-links{display:flex;gap:8px;flex-wrap:wrap}
+.ct .doc-btn{background:var(--pcx);color:var(--pc-on)}
+.ct .doc-btn .ft{background:var(--pc-on);color:var(--pcx)}
+.rounds{display:flex;gap:10px;flex-wrap:wrap}
+.rd{display:flex;flex-direction:column;gap:3px;min-width:150px;padding:10px 14px;border-radius:14px;border:2px solid var(--line);background:var(--surface)}
+.rd b{display:flex;align-items:center;gap:6px;font-size:16px;font-variant-numeric:tabular-nums}
+.rd span{font-size:13px;color:var(--ink)}
+.rd small{font-size:12px;font-weight:700;color:var(--muted)}
+.rd.past{opacity:.6}
+.rd.past small{color:var(--ok)}
+.rd.next{border-color:var(--pcx);background:color-mix(in srgb,var(--pcx) 12%,var(--surface))}
+.rd.next small{color:var(--pcx)}
+.rd.soon small{color:var(--red)}
+.hs b.sm{font-size:16px}
+.nt{display:grid;grid-template-columns:190px minmax(0,1fr) 40px;gap:8px;align-items:center}
+.nt .field{height:42px;font-size:15px;min-width:0;width:100%}
+#pjmContract{min-height:0;height:70px}
+
 /* hộp sửa dự án */
 .modal.pj-modal{width:920px}
 .pjm-top{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
@@ -426,7 +447,7 @@ details.data-table th:first-child,details.data-table td:first-child{text-align:l
 .kr{grid-template-columns:minmax(0,2fr) repeat(3,minmax(0,1fr)) 40px}
 .tk{grid-template-columns:minmax(0,2fr) 90px 90px 204px 40px}
 .kr .field,.tk .field{height:42px;font-size:15px;min-width:0;width:100%}
-.kr.head,.tk.head{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.kr.head,.tk.head,.nt.head{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
 .dpick{display:inline-flex;gap:3px}
 .dpick label{margin:0 !important;cursor:pointer}
 .dpick input{position:absolute;opacity:0;pointer-events:none}
@@ -443,7 +464,10 @@ details.data-table th:first-child,details.data-table td:first-child{text-align:l
   .kr [data-f=goal]{grid-column:1 / -1}
   .tk{grid-template-columns:1fr 1fr}
   .tk [data-f=name]{grid-column:1 / -1}
-  .kr.head,.tk.head{display:none}
+  .kr.head,.tk.head,.nt.head{display:none}
+  .nt{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 40px}
+  .ct{grid-template-columns:1fr}
+  .ct-lab{padding-top:0}
   .hero-stats{margin-left:0}
 }
 
@@ -705,6 +729,12 @@ details.data-table th:first-child,details.data-table td:first-child{text-align:l
       <div class="pjm-color"><input type="color" id="pjmColor" value="#004aef"><button class="btn btn-ghost btn-sm" id="pjmEye" type="button" hidden>🎯 Hút màu từ logo</button></div></div>
   </div>
   <div class="swatches" id="pjmSwatches" aria-label="Màu gợi ý"></div>
+  <h3 class="pjm-h">Hợp đồng &amp; nghiệm thu <span>Để đối chiếu KPI với hợp đồng</span></h3>
+  <label for="pjmContract" style="margin-top:0">Link hợp đồng (mỗi dòng 1 link — hợp đồng, phụ lục…)</label>
+  <textarea class="field" id="pjmContract" placeholder="https://drive.google.com/…"></textarea>
+  <div class="nt head" style="margin-top:12px"><span>Ngày nghiệm thu</span><span>Ghi chú đợt (không bắt buộc)</span><span></span></div>
+  <div class="pjm-rows" id="pjmRounds"></div>
+  <button class="btn btn-ghost btn-sm" id="pjmAddRound" type="button">+ Thêm đợt nghiệm thu</button>
   <h3 class="pjm-h">KPI <span>Nhập số như trong file: 48,3% · 120.000 · 50</span></h3>
   <div class="kr head"><span>Mục tiêu</span><span>KPI mục tiêu (đợt)</span><span>KPI dự án</span><span>KPI hiện tại</span><span></span></div>
   <div class="pjm-rows" id="pjmKpis"></div>
@@ -1216,6 +1246,16 @@ function weekStats(){
   list.forEach(t => { const x = by[t.projectId] = by[t.projectId] || { plan: 0, done: 0 }; x.plan++; if(t.doneAt) x.done++; });
   return { a, b, by, plan: list.length, done: list.filter(t => t.doneAt).length };
 }
+function roundInfo(pj){
+  const tk = todayKey(), rs = (pj.rounds || []).filter(r => r.date).sort((a, b) => a.date.localeCompare(b.date));
+  const next = rs.find(r => r.date >= tk) || null;
+  return { rs, next, last: rs[rs.length - 1] || null, days: next ? diffDays(tk, next.date) : null };
+}
+const roundRel = n => n === 0 ? 'hôm nay' : n === 1 ? 'ngày mai' : `còn ${n} ngày`;
+function contractBtns(pj){
+  const L = pj.contract || [];
+  return L.map((u, i) => `<a class="doc-btn" href="${esc(u)}" target="_blank" rel="noopener" title="${esc(u)}"><span class="ft">${linkInfo(u).ft}</span>Mở hợp đồng${L.length > 1 ? ' ' + (i + 1) : ''}</a>`).join('');
+}
 function kpiSummary(pj){
   const ks = (pj.kpis || []).map(k => ({ k, p: pctOf(k) })).filter(x => x.p != null);
   const ok = ks.filter(x => x.p >= 100).length;
@@ -1226,7 +1266,8 @@ function reportText(){
   const lines = [`BÁO CÁO TUẦN ${dm(W.a)} – ${dm(W.b)}`, ''];
   P.forEach((pj, i) => {
     const s = kpiSummary(pj), w = W.by[pj.id], wk = projWeek(pj);
-    lines.push(`${i + 1}. ${pj.name} — KPI đạt ${s.ok}/${s.n}` + (w ? ` · task xong ${w.done}/${w.plan}` : '') + (wk ? ` · khối lượng ${fmtInt(wk)} phút/tuần` : ''));
+    const ri = roundInfo(pj);
+    lines.push(`${i + 1}. ${pj.name} — KPI đạt ${s.ok}/${s.n}` + (w ? ` · task xong ${w.done}/${w.plan}` : '') + (wk ? ` · khối lượng ${fmtInt(wk)} phút/tuần` : '') + (ri.next ? ` · nghiệm thu ${dm(ri.next.date)} (${roundRel(ri.days)})` : ''));
     s.list.filter(x => x.p < 100).forEach(x => lines.push(`   • Chưa đạt: ${x.k.goal} — hiện tại ${x.k.current} / mục tiêu ${x.k.target} (${fmtPct(x.p)})`));
   });
   const all = P.map(kpiSummary);
@@ -1271,6 +1312,7 @@ function overviewHTML(P){
   const minis = P.map(pj => { const s = kpiSummary(pj), w = W.by[pj.id];
     return `<button class="pj-mini pj-scope" data-pjtab="${pj.id}" style="${pjVars(pj)}"><b>${esc(pj.name)}</b>
       <span class="m"><span class="pill ${s.st}">${s.n ? `${KST_ICON[s.st]} ${s.ok}/${s.n} KPI đạt` : 'Chưa có số KPI'}</span>${projWeek(pj) ? `⏱ ${fmtMin(projWeek(pj))}/tuần` : ''}${w ? ` · task ${w.done}/${w.plan}` : ''}</span>
+      ${(ri => ri.next ? `<span class="m" style="margin-top:4px${ri.days <= 7 ? ';color:var(--red);font-weight:700' : ''}">📑 Nghiệm thu ${wdBadge(ri.next.date)} ${dm(ri.next.date)} · ${roundRel(ri.days)}</span>` : '')(roundInfo(pj))}
       ${s.n ? `<span class="segs" aria-hidden="true">${s.list.map(x => `<i class="${kst(x.p)}"></i>`).join('')}</span>` : ''}</button>`; }).join('');
   const maxW = Math.max(1, ...P.map(projWeek));
   const wl = `<div class="box"><h3>⏱ Khối lượng việc mỗi tuần</h3><div class="wl">${[...P].sort((a, b) => projWeek(b) - projWeek(a)).map(pj => {
@@ -1284,7 +1326,7 @@ function overviewHTML(P){
   return `${tiles}<div class="ov-grid"><div class="pj-minis">${minis}</div><div class="klcv-side">${wl}${rep}</div></div>`;
 }
 function dashHTML(pj){
-  const s = kpiSummary(pj), W = weekStats(), w = W.by[pj.id], wk = projWeek(pj);
+  const s = kpiSummary(pj), W = weekStats(), w = W.by[pj.id], wk = projWeek(pj), ri = roundInfo(pj);
   const lastAt = Math.max(0, ...(pj.kpis || []).map(k => k.currentAt || 0));
   const hero = `<div class="pj-hero"><div><small>Dự án</small><h3>${esc(pj.name)}</h3></div>
     <div class="hero-stats">
@@ -1292,8 +1334,17 @@ function dashHTML(pj){
       <div class="hs"><small>Khối lượng/tuần</small><b>${wk ? fmtMin(wk) : '—'}</b></div>
       <div class="hs"><small>Task tuần này</small><b>${w ? `${w.done}/${w.plan}` : '—'}</b></div>
       <div class="hs"><small>KPI cập nhật</small><b>${lastAt ? dm(keyOf(new Date(lastAt))) : '—'}</b></div>
+      <div class="hs"><small>Nghiệm thu tới</small><b class="sm">${ri.next ? `${dm(ri.next.date)} · ${roundRel(ri.days)}` : '—'}</b></div>
     </div>
     <button class="btn btn-sm" data-pjedit="${pj.id}">✎ Sửa dự án</button></div>`;
+  const ct = `<div class="box box-brand"><h3>📑 Hợp đồng &amp; nghiệm thu</h3><div class="ct">
+      <span class="ct-lab">Hợp đồng</span>
+      <div class="ct-links">${(pj.contract || []).length ? contractBtns(pj) : `<span class="hint" style="padding-top:12px">Chưa gắn link hợp đồng — <button class="btn btn-ghost btn-sm" data-pjedit="${pj.id}">+ Thêm link</button></span>`}</div>
+      <span class="ct-lab">Các đợt nghiệm thu</span>
+      <div class="rounds">${ri.rs.length ? ri.rs.map(r => { const past = r.date < todayKey(), nx = r === ri.next;
+        return `<div class="rd${past ? ' past' : ''}${nx ? ' next' : ''}${nx && ri.days <= 7 ? ' soon' : ''}"><b>${wdBadge(r.date)} ${dm(r.date)}</b>${r.label ? `<span>${esc(r.label)}</span>` : ''}<small>${past ? '✓ Đã qua' : nx ? `▶ Đợt tới · ${roundRel(ri.days)}` : `Sau đó · ${roundRel(diffDays(todayKey(), r.date))}`}</small></div>`; }).join('')
+        : `<span class="hint" style="padding-top:12px">Chưa có ngày nghiệm thu — <button class="btn btn-ghost btn-sm" data-pjedit="${pj.id}">+ Thêm ngày</button></span>`}</div>
+    </div></div>`;
   const MAX = 150, pos = v => Math.min(Math.max(v, 0), MAX) / MAX * 100;
   const rows = (pj.kpis || []).map(k => {
     const p = pctOf(k), st = kst(p), pk = ratio(k.projectKpi, k.target);
@@ -1320,7 +1371,7 @@ function dashHTML(pj){
       <thead><tr><th>Task</th><th style="text-align:right">SL/tuần</th><th style="text-align:right">Phút/lần</th><th style="text-align:right">Phút/tuần</th><th>Ngày làm</th></tr></thead>
       <tbody>${pj.tasks.map(t => `<tr><td>${esc(t.name)}</td><td class="n">${t.qty || '—'}</td><td class="n">${t.min || '—'}</td><td class="n">${(+t.qty || 0) * (+t.min || 0) ? fmtInt(t.qty * t.min) : '—'}</td><td>${dayChips(t.days, today)}</td></tr>`).join('')}</tbody></table></div>`
       : '<p class="hint" style="margin:0">Chưa có task — bấm “Sửa dự án” để thêm (tick ngày làm là task tự vào mục “Hôm nay”).</p>'}</div>`;
-  return `<div class="pj-scope" style="${pjVars(pj)}">${hero}<div class="dash-grid">${chart}${table}${tasks}</div></div>`;
+  return `<div class="pj-scope" style="${pjVars(pj)}">${hero}<div class="dash-grid">${ct}${chart}${table}${tasks}</div></div>`;
 }
 $('#klcvBody').addEventListener('click', e => {
   const t = e.target.closest('[data-pjtab],[data-pjedit]'); if(!t) return;
@@ -1350,6 +1401,13 @@ function taskRow(t){
     <span class="dpick">${DAYS_LBL.map((n, i) => `<label title="${WD_NAME[n]}"><input type="checkbox" data-day="${i}"${t.days && t.days[i] ? ' checked' : ''}><span>${n}</span></label>`).join('')}</span>
     <button class="edit-btn" type="button" data-del aria-label="Xoá task này">✕</button></div>`;
 }
+function roundRow(r){
+  r = r || {};
+  return `<div class="nt" data-id="${r.id || uid()}">
+    <input class="field" type="date" data-f="date" aria-label="Ngày nghiệm thu" value="${esc(r.date || '')}">
+    <input class="field" data-f="label" aria-label="Ghi chú đợt" placeholder="Ví dụ: Đợt 1 – nghiệm thu T8" value="${esc(r.label || '')}">
+    <button class="edit-btn" type="button" data-del aria-label="Xoá đợt này">✕</button></div>`;
+}
 function openPjModal(id){
   const pj = (DB.projects || []).find(p => p.id === id) || null;
   pjEditing = pj;
@@ -1359,6 +1417,8 @@ function openPjModal(id){
   $('#pjmColor').dataset.touched = pj ? '1' : '';
   $('#pjmKpis').innerHTML = (pj && pj.kpis.length ? pj.kpis : [null, null, null]).map(kpiRow).join('');
   $('#pjmTasks').innerHTML = (pj && pj.tasks.length ? pj.tasks : [null]).map(taskRow).join('');
+  $('#pjmContract').value = pj ? (pj.contract || []).join('\n') : '';
+  $('#pjmRounds').innerHTML = (pj && (pj.rounds || []).length ? pj.rounds : [null]).map(roundRow).join('');
   $('#pjmDelete').hidden = !pj;
   $('#pjmEye').hidden = !('EyeDropper' in window);
   $('#pjmSwatches').innerHTML = PJ_COLORS.map(c => `<button type="button" data-color="${c}" style="background:${c}" aria-label="Chọn màu ${c}" title="${c}"></button>`).join('');
@@ -1370,8 +1430,9 @@ $('#pjmColor').addEventListener('input', () => { $('#pjmColor').dataset.touched 
 $('#pjmSwatches').addEventListener('click', e => { const b = e.target.closest('[data-color]'); if(b){ $('#pjmColor').value = b.dataset.color.toLowerCase(); $('#pjmColor').dataset.touched = '1'; } });
 $('#pjmEye').onclick = async () => { try{ const r = await new EyeDropper().open(); $('#pjmColor').value = r.sRGBHex.length === 7 ? r.sRGBHex : '#004aef'; $('#pjmColor').dataset.touched = '1'; }catch(e){} };
 $('#pjmAddKpi').onclick = () => { $('#pjmKpis').insertAdjacentHTML('beforeend', kpiRow()); $('#pjmKpis').lastElementChild.querySelector('input').focus(); };
+$('#pjmAddRound').onclick = () => { $('#pjmRounds').insertAdjacentHTML('beforeend', roundRow()); $('#pjmRounds').lastElementChild.querySelector('input').focus(); };
 $('#pjmAddTask').onclick = () => { $('#pjmTasks').insertAdjacentHTML('beforeend', taskRow()); $('#pjmTasks').lastElementChild.querySelector('input').focus(); };
-$('#pjModal').addEventListener('click', e => { const d = e.target.closest('[data-del]'); if(d) d.closest('.kr,.tk').remove(); });
+$('#pjModal').addEventListener('click', e => { const d = e.target.closest('[data-del]'); if(d) d.closest('.kr,.tk,.nt').remove(); });
 $('#pjmCancel').onclick = () => $('#pjModal').classList.remove('open');
 $('#pjmSave').onclick = () => {
   const name = $('#pjmName').value.trim();
@@ -1388,9 +1449,13 @@ $('#pjmSave').onclick = () => {
     qty: +r.querySelector('[data-f=qty]').value || null, min: +r.querySelector('[data-f=min]').value || null,
     days: [...r.querySelectorAll('[data-day]')].map(c => c.checked),
   })).filter(t => t.name);
+  const contract = ($('#pjmContract').value.match(URL_RE) || []).map(normUrl);
+  if($('#pjmContract').value.trim() && !contract.length){ toast('Link hợp đồng chưa đúng dạng (cần bắt đầu bằng https://…)', 'err'); $('#pjmContract').focus(); return; }
+  const rounds = [...$('#pjmRounds').querySelectorAll('.nt')].map(r => ({ id: r.dataset.id, date: r.querySelector('[data-f=date]').value, label: r.querySelector('[data-f=label]').value.trim() }))
+    .filter(r => r.date).sort((a, b) => a.date.localeCompare(b.date));
   DB.projects = DB.projects || [];
-  if(pjEditing) Object.assign(pjEditing, { name, color: $('#pjmColor').value, kpis, tasks });
-  else { const pj = { id: uid(), name, color: $('#pjmColor').value, kpis, tasks, createdAt: Date.now() }; DB.projects.push(pj); pjTab = pj.id; DB.settings.pjTab = pj.id; }
+  if(pjEditing) Object.assign(pjEditing, { name, color: $('#pjmColor').value, kpis, tasks, contract, rounds });
+  else { const pj = { id: uid(), name, color: $('#pjmColor').value, kpis, tasks, contract, rounds, createdAt: Date.now() }; DB.projects.push(pj); pjTab = pj.id; DB.settings.pjTab = pj.id; }
   $('#pjModal').classList.remove('open'); materializeKLCV(); render();
   toast(`✓ Đã lưu dự án ${name}`, 'ok');
 };
