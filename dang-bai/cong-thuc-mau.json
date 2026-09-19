@@ -1,0 +1,136 @@
+[
+  {
+    "ten": "Facebook Page",
+    "ten_khac": [
+      "facebook",
+      "fb",
+      "fanpage",
+      "trang facebook",
+      "facebook fanpage"
+    ],
+    "huong_dan": "1. Vào developers.facebook.com, tạo một Ứng dụng (loại Business).\n2. Mở công cụ Graph API Explorer, chọn ứng dụng vừa tạo, xin quyền pages_manage_posts và pages_read_engagement.\n3. Ở mục 'User or Page' chọn đúng Fanpage của bạn để lấy Mã truy cập của Trang (Page Access Token).\n4. ID Trang: vào Fanpage → Giới thiệu → Minh bạch về Trang, hoặc xem trong Graph API Explorer.\nLưu ý: mã tạo nhanh chỉ sống vài giờ; nhờ bộ phận kỹ thuật đổi sang mã dài hạn nếu dùng lâu.",
+    "truong": [
+      {
+        "khoa": "page_id",
+        "nhan": "ID Trang (Page ID)",
+        "bi_mat": false,
+        "bat_buoc": true,
+        "goi_y": "Dãy số, ví dụ 102345678901234"
+      },
+      {
+        "khoa": "page_token",
+        "nhan": "Mã truy cập của Trang (Page Access Token)",
+        "bi_mat": true,
+        "bat_buoc": true,
+        "goi_y": "Dãy dài bắt đầu bằng EAA..."
+      }
+    ],
+    "gui": {
+      "phuong_thuc": "POST",
+      "dia_chi": "https://graph.facebook.com/{{truong.page_id}}/photos",
+      "tieu_de_http": {},
+      "kieu_than": "multipart",
+      "than": {
+        "message": "{{noi_dung}}",
+        "source": "{{anh_tep}}",
+        "access_token": "{{truong.page_token}}"
+      }
+    },
+    "ket_qua": {
+      "thanh_cong_khi": "",
+      "duong_dan_bai": "https://www.facebook.com/{{phan_hoi.post_id}}",
+      "thong_bao_loi": "error.message"
+    }
+  },
+  {
+    "ten": "Telegram",
+    "ten_khac": [
+      "tele",
+      "telegram bot",
+      "telegram channel",
+      "kênh telegram"
+    ],
+    "huong_dan": "1. Mở Telegram, tìm @BotFather, gõ /newbot rồi đặt tên cho bot.\n2. BotFather gửi lại một dãy mã dạng 123456:ABC... — đó là Mã bot, dán vào ô bên dưới.\n3. Muốn đăng lên kênh: thêm bot vào kênh và cho làm Quản trị viên. ID nơi nhận là @ten_kenh (kênh công khai).\n4. Muốn gửi cho chính mình: nhắn một tin bất kỳ cho bot, rồi dùng dãy số chat_id của bạn làm ID nơi nhận.",
+    "truong": [
+      {
+        "khoa": "bot_token",
+        "nhan": "Mã bot (Bot Token)",
+        "bi_mat": true,
+        "bat_buoc": true,
+        "goi_y": "Dạng 123456789:AAH..."
+      },
+      {
+        "khoa": "chat_id",
+        "nhan": "ID nơi nhận (kênh / nhóm / người)",
+        "bi_mat": false,
+        "bat_buoc": true,
+        "goi_y": "Ví dụ @kenh_cua_toi hoặc 123456789"
+      }
+    ],
+    "gui": {
+      "phuong_thuc": "POST",
+      "dia_chi": "https://api.telegram.org/bot{{truong.bot_token}}/sendPhoto",
+      "tieu_de_http": {},
+      "kieu_than": "multipart",
+      "than": {
+        "chat_id": "{{truong.chat_id}}",
+        "caption": "{{noi_dung}}",
+        "photo": "{{anh_tep}}"
+      }
+    },
+    "ket_qua": {
+      "thanh_cong_khi": "ok",
+      "duong_dan_bai": "https://t.me/{{phan_hoi.result.chat.username}}/{{phan_hoi.result.message_id}}",
+      "thong_bao_loi": "description"
+    }
+  },
+  {
+    "ten": "Webhook (Make / Zapier / n8n)",
+    "ten_khac": [
+      "webhook",
+      "make",
+      "make.com",
+      "zapier",
+      "n8n",
+      "integromat"
+    ],
+    "huong_dan": "Dùng cách này để nối với BẤT KỲ nền tảng nào (LinkedIn, X, Zalo OA, WordPress...):\n1. Vào Make.com (hoặc Zapier), tạo kịch bản mới, bước đầu chọn 'Webhooks → Custom webhook'.\n2. Sao chép đường dẫn webhook mà Make đưa cho bạn, dán vào ô bên dưới.\n3. Bấm 'Đăng' một lần để Make nhận mẫu dữ liệu (tieu_de, tom_tat, link_goc, anh_url, noi_dung).\n4. Trong Make, thêm bước đăng lên nền tảng bạn muốn và kéo các ô dữ liệu vào.",
+    "truong": [
+      {
+        "khoa": "dia_chi_webhook",
+        "nhan": "Đường dẫn Webhook",
+        "bi_mat": true,
+        "bat_buoc": true,
+        "goi_y": "Ví dụ https://hook.eu2.make.com/abc123..."
+      },
+      {
+        "khoa": "ma_bao_mat",
+        "nhan": "Mã bảo mật (nếu có)",
+        "bi_mat": true,
+        "bat_buoc": false,
+        "goi_y": "Để trống nếu webhook không yêu cầu"
+      }
+    ],
+    "gui": {
+      "phuong_thuc": "POST",
+      "dia_chi": "{{truong.dia_chi_webhook}}",
+      "tieu_de_http": {
+        "Authorization": "Bearer {{truong.ma_bao_mat}}"
+      },
+      "kieu_than": "json",
+      "than": {
+        "tieu_de": "{{tieu_de}}",
+        "tom_tat": "{{tom_tat}}",
+        "link_goc": "{{link_goc}}",
+        "anh_url": "{{anh_url}}",
+        "anh_base64": "{{anh_base64}}",
+        "noi_dung": "{{noi_dung}}"
+      }
+    },
+    "ket_qua": {
+      "thanh_cong_khi": "",
+      "duong_dan_bai": "{{phan_hoi.url}}",
+      "thong_bao_loi": ""
+    }
+  }
+]

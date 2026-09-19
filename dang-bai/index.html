@@ -1,0 +1,628 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Đăng bài đa kênh</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --xanh: #004AEF; --xanh-dam: #0038b8; --xanh-nhat: #e8efff;
+    --bac-ha: #07EF9C; --bac-ha-nhat: #e3fdf3; --bac-ha-dam: #04885a;
+    --do: #d92d20; --do-nhat: #fef3f2; --vang-nhat: #fffaeb; --vang: #b54708;
+    --chu: #101828; --chu-phu: #475467; --chu-mo: #98a2b3;
+    --nen: #f4f6fb; --the: #ffffff; --vien: #e4e7ec; --bo: 14px;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--nen); color: var(--chu); font: 15px/1.55 "Be Vietnam Pro", system-ui, sans-serif; }
+  button, input, textarea { font: inherit; color: inherit; }
+  .khung { max-width: 1180px; margin: 0 auto; padding: 0 16px 60px; }
+
+  header { background: var(--xanh); color: #fff; }
+  header .khung { display: flex; align-items: center; gap: 16px; padding-top: 18px; padding-bottom: 18px; flex-wrap: wrap; }
+  .logo { width: 40px; height: 40px; border-radius: 11px; background: var(--bac-ha); display: grid; place-items: center; color: var(--xanh); font-weight: 700; font-size: 20px; }
+  header h1 { margin: 0; font-size: 20px; }
+  header p { margin: 0; opacity: .8; font-size: 13.5px; }
+  .dau-phai { margin-left: auto; display: flex; gap: 10px; align-items: center; }
+  .chip { font-size: 12.5px; padding: 4px 11px; border-radius: 99px; background: rgba(255,255,255,.15); white-space: nowrap; }
+  .chip.bat { background: var(--bac-ha); color: #00332a; font-weight: 600; }
+
+  .the { background: var(--the); border: 1px solid var(--vien); border-radius: var(--bo); padding: 20px; }
+  .buoc { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; font-size: 16.5px; font-weight: 700; }
+  .so { width: 26px; height: 26px; border-radius: 50%; background: var(--xanh); color: #fff; display: grid; place-items: center; font-size: 13px; flex: none; }
+  .mo-ta-buoc { color: var(--chu-phu); font-size: 13.5px; margin: -8px 0 14px 36px; }
+
+  .nut { border: 0; border-radius: 10px; padding: 11px 18px; font-weight: 600; cursor: pointer; background: var(--xanh); color: #fff; white-space: nowrap; }
+  .nut:hover { background: var(--xanh-dam); }
+  .nut:disabled { background: #b8c4dd; cursor: not-allowed; }
+  .nut.phu { background: var(--xanh-nhat); color: var(--xanh); }
+  .nut.phu:hover { background: #d6e2ff; }
+  .nut.nho { padding: 7px 12px; font-size: 13.5px; }
+  .nut.chu { background: none; color: var(--chu-phu); padding: 6px 8px; }
+  .nut.chu:hover { color: var(--do); background: var(--do-nhat); }
+  header .nut.phu { background: rgba(255,255,255,.15); color: #fff; }
+
+  input[type=text], input[type=url], input[type=password], textarea {
+    width: 100%; border: 1.5px solid var(--vien); border-radius: 10px; padding: 10px 12px; background: #fff; outline: none;
+  }
+  input:focus, textarea:focus { border-color: var(--xanh); box-shadow: 0 0 0 3px var(--xanh-nhat); }
+  label.nhan { display: block; font-weight: 600; font-size: 13.5px; margin: 14px 0 6px; }
+  .goi-y { font-size: 12.5px; color: var(--chu-mo); margin-top: 4px; }
+
+  .o-link { display: flex; gap: 10px; }
+  .o-link input { font-size: 16px; padding: 13px 14px; }
+  .o-link .nut { padding: 0 24px; }
+  .trang-thai { margin-top: 10px; font-size: 13.5px; color: var(--chu-phu); min-height: 20px; }
+  .trang-thai.loi { color: var(--do); }
+
+  .luoi { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: 18px; margin-top: 18px; align-items: start; }
+  @media (max-width: 900px) { .luoi { grid-template-columns: 1fr; } .o-link { flex-direction: column; } .o-link .nut { padding: 12px; } }
+
+  .trong { text-align: center; color: var(--chu-mo); padding: 40px 10px; border: 1.5px dashed var(--vien); border-radius: 12px; }
+
+  .dem { float: right; font-weight: 600; font-size: 12.5px; color: var(--bac-ha-dam); }
+  .dem.qua { color: var(--do); }
+  textarea { resize: vertical; min-height: 78px; }
+  .hang-anh { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .hang-anh img { width: 92px; height: 60px; object-fit: cover; border-radius: 8px; border: 1px solid var(--vien); background: var(--nen); }
+  .link-khoa { display: flex; align-items: center; gap: 8px; background: var(--nen); border-radius: 10px; padding: 9px 12px; font-size: 13.5px; color: var(--chu-phu); word-break: break-all; }
+
+  .xem-truoc { margin-top: 20px; border-top: 1px solid var(--vien); padding-top: 18px; }
+  .xem-truoc h3 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--chu-phu); }
+  .bai-dang { border: 1px solid var(--vien); border-radius: 12px; overflow: hidden; max-width: 520px; background: #fff; box-shadow: 0 1px 3px rgba(16,24,40,.06); }
+  .bai-dang .tac-gia { display: flex; gap: 10px; align-items: center; padding: 12px 14px; font-weight: 600; font-size: 14px; }
+  .bai-dang .tac-gia span { width: 32px; height: 32px; border-radius: 50%; background: var(--xanh); }
+  .bai-dang .noi-dung { padding: 0 14px 12px; white-space: pre-wrap; word-break: break-word; font-size: 14.5px; }
+  .bai-dang .noi-dung b { font-weight: 700; }
+  .bai-dang .noi-dung a { color: var(--xanh); }
+  .bai-dang img { display: block; width: 100%; max-height: 300px; object-fit: cover; background: var(--nen); }
+  .bai-dang .khong-anh { padding: 30px; text-align: center; color: var(--chu-mo); background: var(--nen); font-size: 13px; }
+  details.toan-van { margin-top: 14px; font-size: 13.5px; color: var(--chu-phu); }
+  details.toan-van div { max-height: 220px; overflow: auto; white-space: pre-wrap; background: var(--nen); padding: 10px 12px; border-radius: 8px; margin-top: 8px; }
+  .nhan-nguon { display: inline-block; font-size: 12px; padding: 2px 9px; border-radius: 99px; background: var(--bac-ha-nhat); color: var(--bac-ha-dam); font-weight: 600; margin-left: 6px; }
+  .canh-bao { background: var(--vang-nhat); color: var(--vang); border-radius: 10px; padding: 10px 12px; font-size: 13.5px; margin-top: 10px; }
+
+  .ds-ket-noi { display: flex; flex-direction: column; gap: 10px; }
+  .kn { border: 1.5px solid var(--vien); border-radius: 12px; padding: 12px 14px; display: flex; gap: 12px; align-items: flex-start; transition: border-color .15s; }
+  .kn.bat { border-color: var(--bac-ha); background: linear-gradient(0deg, #fff, #fff), var(--bac-ha-nhat); }
+  .kn .thong-tin { flex: 1; min-width: 0; }
+  .kn .ten { font-weight: 700; }
+  .kn .phu { font-size: 12.5px; color: var(--chu-phu); word-break: break-all; }
+  .cong-tac { position: relative; width: 46px; height: 26px; flex: none; margin-top: 2px; }
+  .cong-tac input { opacity: 0; width: 0; height: 0; }
+  .cong-tac span { position: absolute; inset: 0; background: #d0d5dd; border-radius: 99px; cursor: pointer; transition: .2s; }
+  .cong-tac span::before { content: ""; position: absolute; width: 20px; height: 20px; left: 3px; top: 3px; background: #fff; border-radius: 50%; transition: .2s; box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+  .cong-tac input:checked + span { background: var(--bac-ha-dam); }
+  .cong-tac input:checked + span::before { transform: translateX(20px); }
+  .cong-tac input:focus-visible + span { box-shadow: 0 0 0 3px var(--xanh-nhat); }
+
+  .them-moi { margin-top: 16px; border-top: 1px solid var(--vien); padding-top: 16px; }
+  .them-moi .hang { display: flex; gap: 8px; }
+  .bieu-mau { margin-top: 14px; border: 1.5px solid var(--xanh); border-radius: 12px; padding: 16px; background: #fbfcff; }
+  .bieu-mau h4 { margin: 0; font-size: 16px; }
+  .huong-dan { background: var(--xanh-nhat); border-radius: 10px; padding: 10px 12px 10px 14px; font-size: 13.5px; margin-top: 12px; white-space: pre-wrap; }
+  .o-bi-mat { position: relative; }
+  .o-bi-mat button { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); border: 0; background: none; color: var(--xanh); font-size: 12.5px; cursor: pointer; font-weight: 600; }
+  details.ky-thuat { margin-top: 14px; font-size: 13px; }
+  details.ky-thuat summary { cursor: pointer; color: var(--chu-phu); }
+  details.ky-thuat textarea { font-family: ui-monospace, Consolas, monospace; font-size: 12px; min-height: 220px; margin-top: 8px; }
+  .hang-nut { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+
+  .phan-dang { margin-top: 18px; }
+  .dong-dang { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .nut.lon { padding: 14px 28px; font-size: 16px; background: var(--bac-ha); color: #00332a; }
+  .nut.lon:hover { background: #05d98d; }
+  .nut.lon:disabled { background: #d0d5dd; color: #667085; }
+  .ly-do { font-size: 13.5px; color: var(--chu-phu); }
+  table { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: 14px; }
+  th { text-align: left; font-size: 12.5px; color: var(--chu-phu); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--vien); }
+  td { padding: 12px 10px; border-bottom: 1px solid var(--vien); vertical-align: top; }
+  td a { color: var(--xanh); word-break: break-all; }
+  .nhan-tt { display: inline-block; padding: 3px 10px; border-radius: 99px; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+  .nhan-tt.ok { background: var(--bac-ha-nhat); color: var(--bac-ha-dam); }
+  .nhan-tt.hong { background: var(--do-nhat); color: var(--do); }
+  .nhan-tt.cho { background: var(--xanh-nhat); color: var(--xanh); }
+  .loi-chi-tiet { color: var(--do); }
+  .goi-y-loi { color: var(--chu-phu); font-size: 13px; margin-top: 4px; }
+  @media (max-width: 640px) { th:nth-child(1), td:nth-child(1) { width: 30%; } table, tbody, tr, td { font-size: 13.5px; } }
+
+  .xoay { display: inline-block; width: 14px; height: 14px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: x .7s linear infinite; vertical-align: -2px; margin-right: 6px; }
+  @keyframes x { to { transform: rotate(360deg); } }
+
+  #manKhoa { position: fixed; inset: 0; z-index: 50; background: var(--nen); display: grid; place-items: center; padding: 16px; overflow: auto; }
+  #manKhoa[hidden] { display: none; }
+  .hop-khoa { width: min(420px, 100%); box-shadow: 0 20px 50px rgba(16,24,40,.12); }
+  body.dang-khoa { overflow: hidden; }
+  @media (max-width: 640px) { header .chip:first-child { display: none; } }
+  dialog { border: 0; border-radius: 16px; padding: 22px; width: min(520px, calc(100vw - 32px)); box-shadow: 0 20px 50px rgba(16,24,40,.25); }
+  dialog::backdrop { background: rgba(16,24,40,.45); }
+  dialog h3 { margin: 0 0 6px; }
+  dialog p { color: var(--chu-phu); font-size: 14px; margin: 6px 0; }
+</style>
+</head>
+<body>
+<header>
+  <div class="khung">
+    <div class="logo">⇪</div>
+    <div>
+      <h1>Đăng bài đa kênh</h1>
+      <p>Dán link bài viết → xem trước → đăng lên mọi nơi cùng lúc</p>
+    </div>
+    <div class="dau-phai">
+      <a class="chip" href="/" style="color:#fff;text-decoration:none">← Thư ký công việc</a>
+      <span class="chip" id="chipAI">AI: chưa bật</span>
+      <button class="nut phu nho" id="nutCaiDat">Cài đặt</button>
+      <button class="nut phu nho" id="nutDangXuat">Đăng xuất</button>
+    </div>
+  </div>
+</header>
+
+<div id="manKhoa" hidden>
+  <form class="the hop-khoa" id="formKhoa">
+    <div class="logo" style="margin-bottom:12px">⇪</div>
+    <h2 id="mkTieuDe" style="margin:0 0 6px">Đăng nhập</h2>
+    <p id="mkMoTa" class="goi-y" style="font-size:14px;color:var(--chu-phu)"></p>
+    <div id="mkVungMa">
+      <label class="nhan" for="mkMa">Mã kích hoạt</label>
+      <input type="text" id="mkMa" placeholder="XXXXX-XXXXX-XXXXX-XXXXX" autocomplete="off" spellcheck="false">
+    </div>
+    <label class="nhan" for="mkMatKhau">Mật khẩu</label>
+    <input type="password" id="mkMatKhau" autocomplete="current-password" required>
+    <div id="mkVungNhapLai">
+      <label class="nhan" for="mkNhapLai">Nhập lại mật khẩu</label>
+      <input type="password" id="mkNhapLai" autocomplete="new-password">
+    </div>
+    <div class="trang-thai" id="ttKhoa"></div>
+    <button class="nut" id="mkNut" style="width:100%;margin-top:8px">Đăng nhập</button>
+    <p style="text-align:center;margin:14px 0 0;font-size:13.5px"><a href="#" id="mkQuen" style="color:var(--xanh)">Quên mật khẩu?</a></p>
+  </form>
+</div>
+
+<main class="khung" style="margin-top:20px">
+  <!-- BƯỚC 1 -->
+  <section class="the">
+    <h2 class="buoc"><span class="so">1</span>Dán đường dẫn bài viết</h2>
+    <form class="o-link" id="formLink">
+      <input type="url" id="oLink" placeholder="https://... (bài báo, blog, bài viết bất kỳ)" required autocomplete="off">
+      <button class="nut" id="nutLay">Lấy bài</button>
+    </form>
+    <div class="trang-thai" id="ttLay"></div>
+  </section>
+
+  <div class="luoi">
+    <!-- BƯỚC 3 -->
+    <section class="the">
+      <h2 class="buoc"><span class="so">3</span>Xem trước &amp; chỉnh sửa</h2>
+      <p class="mo-ta-buoc">Sửa tiêu đề, viết lại tóm tắt, đổi ảnh. Khung bên dưới là đúng những gì sẽ được đăng.</p>
+      <div id="vungSua"><div class="trong">Dán đường dẫn ở bước 1 để bắt đầu.</div></div>
+    </section>
+
+    <!-- BƯỚC 2 -->
+    <section class="the">
+      <h2 class="buoc"><span class="so">2</span>Nơi đăng bài</h2>
+      <p class="mo-ta-buoc">Bật công tắc ở những nơi muốn đăng.</p>
+      <div class="ds-ket-noi" id="dsKetNoi"></div>
+      <div class="them-moi">
+        <label class="nhan" for="oTenNenTang" style="margin-top:0">Bạn muốn kết nối với nền tảng nào?</label>
+        <form class="hang" id="formNenTang">
+          <input type="text" id="oTenNenTang" placeholder="Gõ tên nền tảng bất kỳ…" autocomplete="off" required>
+          <button class="nut phu" id="nutTaoBieuMau">Tạo biểu mẫu</button>
+        </form>
+        <div class="trang-thai" id="ttBieuMau"></div>
+        <div id="vungBieuMau"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- BƯỚC 4 -->
+  <section class="the phan-dang">
+    <h2 class="buoc"><span class="so">4</span>Đăng bài &amp; báo cáo</h2>
+    <div class="dong-dang">
+      <button class="nut lon" id="nutDang" disabled>Đăng bài</button>
+      <span class="ly-do" id="lyDo"></span>
+    </div>
+    <div id="bangKetQua"></div>
+  </section>
+</main>
+
+<dialog id="hopCaiDat">
+  <h3>Cài đặt AI (không bắt buộc)</h3>
+  <p>Có AI, hệ thống sẽ <b>tóm tắt hay hơn</b> và <b>tự tìm cách kết nối</b> với nền tảng mới. Không có AI, ứng dụng vẫn chạy bình thường.</p>
+  <p>Chìa khoá Claude (API key) lấy tại <b>console.anthropic.com</b> → API Keys. Chìa khoá chỉ lưu trên máy này.</p>
+  <label class="nhan" for="oChiaKhoa">Chìa khoá Claude</label>
+  <div class="o-bi-mat">
+    <input type="password" id="oChiaKhoa" placeholder="sk-ant-..." autocomplete="off">
+  </div>
+  <div class="trang-thai" id="ttCaiDat"></div>
+  <div class="hang-nut">
+    <button class="nut" id="nutLuuCaiDat">Lưu</button>
+    <button class="nut phu" id="nutTatAI">Tắt AI</button>
+    <button class="nut chu" id="nutDongCaiDat">Đóng</button>
+  </div>
+</dialog>
+
+<script>
+const GIOI_HAN = 139;
+const $ = (s) => document.querySelector(s);
+const trangThai = { ai: false, bai: null, ketNoi: [], bieuMau: null, dangDang: false };
+
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+const nfc = (s) => (s || "").normalize("NFC");
+const doDai = (s) => [...nfc(s)].length;
+const gon = (s) => nfc(s).replace(/\s+/g, " ").trim();
+
+async function goi(duong, phuongThuc = "GET", duLieu) {
+  let r;
+  try {
+    r = await fetch("/api/dang-bai" + duong, {
+      method: phuongThuc,
+      headers: { "Content-Type": "application/json", "X-Ung-Dung": "dang-bai" },
+      body: duLieu ? JSON.stringify(duLieu) : undefined,
+      credentials: "same-origin",
+    });
+  } catch { throw new Error("Mất kết nối mạng. Kiểm tra internet rồi thử lại."); }
+  let kq = {};
+  try { kq = await r.json(); } catch {}
+  if (r.status === 401) { hienManKhoa("dang-nhap", "Phiên đăng nhập đã hết, anh/chị đăng nhập lại nhé."); throw new Error("Cần đăng nhập."); }
+  if ((r.status === 502 || r.status === 504) && !kq.loi) throw new Error("Máy chủ xử lý quá lâu (quá 60 giây). Thử lại nhé.");
+  if (!r.ok) throw new Error(kq.loi || `Lỗi ${r.status}`);
+  return kq;
+}
+
+/* ---------------- Màn hình khoá (mật khẩu) ---------------- */
+function hienManKhoa(che, thongBao = "") {
+  const lanDau = che === "thiet-lap";
+  $("#manKhoa").hidden = false;
+  document.body.classList.add("dang-khoa");
+  $("#mkTieuDe").textContent = lanDau ? "Đặt mật khẩu cho ứng dụng" : "Đăng nhập";
+  $("#mkMoTa").textContent = lanDau
+    ? "Lần đầu dùng (hoặc quên mật khẩu): nhập mã kích hoạt em đã gửi anh, rồi tự đặt một mật khẩu từ 8 ký tự."
+    : "Ứng dụng giữ các mã kết nối Facebook/Telegram… nên cần mật khẩu để người khác không dùng được.";
+  $("#mkVungMa").hidden = !lanDau;
+  $("#mkVungNhapLai").hidden = !lanDau;
+  $("#mkQuen").hidden = lanDau;
+  $("#mkNut").textContent = lanDau ? "Lưu mật khẩu & vào ứng dụng" : "Đăng nhập";
+  $("#formKhoa").dataset.che = che;
+  hienTT($("#ttKhoa"), thongBao);
+  setTimeout(() => (lanDau ? $("#mkMa") : $("#mkMatKhau")).focus(), 50);
+}
+function anManKhoa() { $("#manKhoa").hidden = true; document.body.classList.remove("dang-khoa"); }
+$("#mkQuen").onclick = (e) => { e.preventDefault(); hienManKhoa("thiet-lap"); };
+$("#formKhoa").onsubmit = async (ev) => {
+  ev.preventDefault();
+  const che = ev.target.dataset.che;
+  const matKhau = $("#mkMatKhau").value;
+  if (che === "thiet-lap" && matKhau !== $("#mkNhapLai").value) { hienTT($("#ttKhoa"), "Hai lần nhập mật khẩu chưa giống nhau.", true); return; }
+  $("#mkNut").disabled = true;
+  hienTT($("#ttKhoa"), "Đang kiểm tra…", false, true);
+  try {
+    if (che === "thiet-lap") await goi("/thiet-lap", "POST", { ma_kich_hoat: $("#mkMa").value, mat_khau: matKhau });
+    else await goi("/dang-nhap", "POST", { mat_khau: matKhau });
+    $("#formKhoa").reset();
+    anManKhoa();
+    await khoiDong();
+  } catch (e) { hienTT($("#ttKhoa"), e.message, true); }
+  finally { $("#mkNut").disabled = false; }
+};
+$("#nutDangXuat").onclick = async () => {
+  await goi("/dang-xuat", "POST").catch(() => {});
+  hienManKhoa("dang-nhap", "Đã đăng xuất.");
+};
+function hienTT(el, noiDung, loi = false, xoay = false) {
+  el.className = "trang-thai" + (loi ? " loi" : "");
+  el.innerHTML = (xoay ? '<span class="xoay"></span>' : "") + esc(noiDung);
+}
+
+/* ---------------- Cài đặt AI ---------------- */
+function veAI() {
+  const c = $("#chipAI");
+  c.textContent = trangThai.ai ? "AI: đang bật" : "AI: chưa bật";
+  c.classList.toggle("bat", trangThai.ai);
+}
+$("#nutCaiDat").onclick = () => { $("#oChiaKhoa").value = ""; hienTT($("#ttCaiDat"), trangThai.ai ? "AI đang bật. Dán chìa khoá mới nếu muốn đổi." : ""); $("#hopCaiDat").showModal(); };
+$("#nutDongCaiDat").onclick = () => $("#hopCaiDat").close();
+async function luuCaiDat(khoa) {
+  try {
+    const kq = await goi("/cai-dat", "POST", { chia_khoa_claude: khoa });
+    trangThai.ai = kq.ai; veAI();
+    hienTT($("#ttCaiDat"), kq.ai ? "Đã lưu. AI đang bật." : "Đã tắt AI.");
+    setTimeout(() => $("#hopCaiDat").close(), 700);
+  } catch (e) { hienTT($("#ttCaiDat"), e.message, true); }
+}
+$("#nutLuuCaiDat").onclick = () => { const k = $("#oChiaKhoa").value.trim(); if (k) luuCaiDat(k); else hienTT($("#ttCaiDat"), "Chưa dán chìa khoá.", true); };
+$("#nutTatAI").onclick = () => luuCaiDat("");
+
+/* ---------------- Bước 1: lấy bài ---------------- */
+$("#formLink").onsubmit = async (ev) => {
+  ev.preventDefault();
+  const url = $("#oLink").value.trim();
+  const nut = $("#nutLay");
+  nut.disabled = true;
+  hienTT($("#ttLay"), trangThai.ai ? "Đang đọc bài và nhờ AI tóm tắt…" : "Đang đọc bài…", false, true);
+  try {
+    const bai = await goi("/trich-xuat", "POST", { url });
+    trangThai.bai = { ...bai, anh_tai_len: null };
+    hienTT($("#ttLay"), `Đã lấy xong bài từ ${bai.ten_mien} (${bai.so_chu.toLocaleString("vi")} chữ).`);
+    veVungSua();
+    $("#bangKetQua").innerHTML = "";
+  } catch (e) {
+    hienTT($("#ttLay"), e.message, true);
+  } finally { nut.disabled = false; capNhatNutDang(); }
+};
+
+/* ---------------- Bước 3: xem trước & chỉnh sửa ---------------- */
+function anhDangDung() {
+  const b = trangThai.bai;
+  if (b.anh_tai_len) return `data:${b.anh_tai_len.kieu};base64,${b.anh_tai_len.base64}`;
+  return b.anh_url || "";
+}
+function veVungSua() {
+  const b = trangThai.bai;
+  $("#vungSua").innerHTML = `
+    <label class="nhan" for="oTieuDe">Tiêu đề</label>
+    <input type="text" id="oTieuDe" value="${esc(b.tieu_de)}">
+
+    <label class="nhan" for="oTomTat">Tóm tắt <span class="nhan-nguon">${esc(b.nguon_tom_tat)}</span><span class="dem" id="dem"></span></label>
+    <textarea id="oTomTat" rows="3">${esc(b.tom_tat)}</textarea>
+    <div class="goi-y">Bắt buộc dưới 140 ký tự (tối đa ${GIOI_HAN}).</div>
+    ${b.canh_bao ? `<div class="canh-bao">${esc(b.canh_bao)}</div>` : ""}
+
+    <label class="nhan">Ảnh</label>
+    <div class="hang-anh">
+      <img id="anhNho" alt="" referrerpolicy="no-referrer">
+      <label class="nut phu nho" style="cursor:pointer">Tải ảnh khác lên<input type="file" id="oAnh" accept="image/*" hidden></label>
+      <button class="nut chu nho" id="nutAnhGoc" type="button">Dùng lại ảnh gốc</button>
+    </div>
+
+    <label class="nhan">Đường dẫn bài gốc</label>
+    <div class="link-khoa">🔒 <span>${esc(b.link_goc)}</span></div>
+    <div class="goi-y">Tự động gắn vào cuối bài đăng để tạo liên kết ngược — không cần làm gì.</div>
+
+    <div class="xem-truoc">
+      <h3>Bài đăng sẽ trông như thế này</h3>
+      <div class="bai-dang">
+        <div class="tac-gia"><span></span>Trang của bạn</div>
+        <div class="noi-dung" id="xtNoiDung"></div>
+        <div id="xtAnh"></div>
+      </div>
+    </div>
+
+    ${b.noi_dung ? `<details class="toan-van"><summary>Xem nội dung toàn văn đã lấy (${b.so_chu.toLocaleString("vi")} chữ)</summary><div>${esc(b.noi_dung)}</div></details>` : ""}
+  `;
+  $("#oTieuDe").oninput = (e) => { b.tieu_de = e.target.value; veXemTruoc(); };
+  $("#oTomTat").oninput = (e) => { b.tom_tat = e.target.value; veXemTruoc(); };
+  $("#oAnh").onchange = chonAnh;
+  $("#nutAnhGoc").onclick = () => { b.anh_tai_len = null; veXemTruoc(); };
+  veXemTruoc();
+}
+function veXemTruoc() {
+  const b = trangThai.bai;
+  const n = doDai(gon(b.tom_tat));
+  const dem = $("#dem");
+  dem.textContent = `${n}/${GIOI_HAN}`;
+  dem.classList.toggle("qua", n > GIOI_HAN || n === 0);
+  $("#xtNoiDung").innerHTML = `<b>${esc(gon(b.tieu_de))}</b>\n\n${esc(gon(b.tom_tat))}\n\n<a href="${esc(b.link_goc)}" target="_blank" rel="noopener">${esc(b.link_goc)}</a>`;
+  const src = anhDangDung();
+  $("#xtAnh").innerHTML = src ? `<img src="${esc(src)}" alt="Ảnh bài đăng" referrerpolicy="no-referrer">` : `<div class="khong-anh">Bài này không có ảnh — hãy tải một ảnh lên.</div>`;
+  const nho = $("#anhNho");
+  if (src) { nho.src = src; nho.style.display = ""; } else nho.style.display = "none";
+  $("#nutAnhGoc").style.display = b.anh_tai_len && b.anh_url ? "" : "none";
+  capNhatNutDang();
+}
+// Ảnh tải lên được thu nhỏ còn tối đa 1600px (JPG) để gửi nhanh và không vượt giới hạn 6MB của máy chủ
+function chonAnh(ev) {
+  const tep = ev.target.files[0];
+  ev.target.value = "";
+  if (!tep) return;
+  if (!tep.type.startsWith("image/")) { alert("Tệp này không phải ảnh."); return; }
+  const anh = new Image();
+  const dc = URL.createObjectURL(tep);
+  anh.onload = () => {
+    const tiLe = Math.min(1, 1600 / Math.max(anh.naturalWidth, anh.naturalHeight));
+    const cv = document.createElement("canvas");
+    cv.width = Math.round(anh.naturalWidth * tiLe);
+    cv.height = Math.round(anh.naturalHeight * tiLe);
+    const g = cv.getContext("2d");
+    g.fillStyle = "#fff"; g.fillRect(0, 0, cv.width, cv.height);
+    g.drawImage(anh, 0, 0, cv.width, cv.height);
+    URL.revokeObjectURL(dc);
+    const base64 = cv.toDataURL("image/jpeg", 0.88).split(",")[1];
+    trangThai.bai.anh_tai_len = { ten: tep.name.replace(/\.\w+$/, "") + ".jpg", kieu: "image/jpeg", base64 };
+    veXemTruoc();
+  };
+  anh.onerror = () => { URL.revokeObjectURL(dc); alert("Không đọc được ảnh này, hãy chọn ảnh khác (JPG/PNG)."); };
+  anh.src = dc;
+}
+
+/* ---------------- Bước 2: kết nối ---------------- */
+async function taiKetNoi() {
+  trangThai.ketNoi = await goi("/ket-noi");
+  veKetNoi();
+}
+function veKetNoi() {
+  const ds = trangThai.ketNoi;
+  $("#dsKetNoi").innerHTML = ds.length ? ds.map((k) => `
+    <div class="kn ${k.bat ? "bat" : ""}">
+      <label class="cong-tac" title="Bật/tắt đăng lên ${esc(k.ten)}">
+        <input type="checkbox" data-id="${k.id}" ${k.bat ? "checked" : ""} aria-label="Đăng lên ${esc(k.ten)}"><span></span>
+      </label>
+      <div class="thong-tin">
+        <div class="ten">${esc(k.ten)}</div>
+        <div class="phu">${k.truong.map((t) => `${esc(t.nhan)}: ${esc(t.gia_tri || "—")}`).join(" · ")}</div>
+        <div class="phu">Gửi tới: ${esc(k.may_chu)}</div>
+      </div>
+      <button class="nut chu nho" data-xoa="${k.id}" title="Xoá kết nối">Xoá</button>
+    </div>`).join("")
+    : `<div class="trong" style="padding:22px">Chưa có nơi đăng nào. Gõ tên nền tảng bên dưới để kết nối.</div>`;
+  $("#dsKetNoi").querySelectorAll("input[data-id]").forEach((o) => o.onchange = async () => {
+    const k = ds.find((x) => x.id === o.dataset.id);
+    k.bat = o.checked; veKetNoi();
+    try { await goi(`/ket-noi/${k.id}/bat-tat`, "POST", { bat: k.bat }); } catch (e) { alert(e.message); taiKetNoi(); }
+  });
+  $("#dsKetNoi").querySelectorAll("[data-xoa]").forEach((n) => n.onclick = async () => {
+    const k = ds.find((x) => x.id === n.dataset.xoa);
+    if (!confirm(`Xoá kết nối "${k.ten}"? Mã kết nối đã lưu cũng sẽ bị xoá.`)) return;
+    await goi(`/ket-noi/${k.id}`, "DELETE");
+    taiKetNoi();
+  });
+  capNhatNutDang();
+}
+
+$("#formNenTang").onsubmit = async (ev) => {
+  ev.preventDefault();
+  const ten = $("#oTenNenTang").value.trim();
+  const nut = $("#nutTaoBieuMau");
+  nut.disabled = true;
+  $("#vungBieuMau").innerHTML = "";
+  hienTT($("#ttBieuMau"), trangThai.ai ? `AI đang tìm cách kết nối với ${ten} (khoảng 20–60 giây)…` : "Đang tạo biểu mẫu…", false, true);
+  try {
+    const ct = await goi("/bieu-mau", "POST", { ten });
+    if (!ct) throw new Error("Không tạo được biểu mẫu.");
+    trangThai.bieuMau = { ten: ct.ten || ten, congThuc: ct };
+    hienTT($("#ttBieuMau"), "");
+    veBieuMau();
+  } catch (e) {
+    hienTT($("#ttBieuMau"), e.message, true);
+  } finally { nut.disabled = false; }
+};
+
+function congThucSach(ct) {
+  const { ly_do, ...con } = ct;
+  return con;
+}
+function veBieuMau() {
+  const { ten, congThuc: ct } = trangThai.bieuMau;
+  const truong = ct.truong || [];
+  $("#vungBieuMau").innerHTML = `
+    <div class="bieu-mau">
+      <h4>Kết nối ${esc(ten)}</h4>
+      <div class="goi-y">${esc(ct.nguon || "")}</div>
+      ${ct.ly_do ? `<div class="canh-bao">${esc(ct.ly_do)}</div>` : ""}
+      ${ct.huong_dan ? `<div class="huong-dan"><b>Cách lấy mã kết nối:</b>\n${esc(ct.huong_dan)}</div>` : ""}
+      <label class="nhan" for="bmTen">Tên hiển thị</label>
+      <input type="text" id="bmTen" value="${esc(ten)}">
+      ${truong.map((t, i) => `
+        <label class="nhan" for="bm_${i}">${esc(t.nhan)}${t.bat_buoc === false ? ' <span style="font-weight:400;color:var(--chu-mo)">(không bắt buộc)</span>' : ""}</label>
+        <div class="o-bi-mat">
+          <input type="${t.bi_mat ? "password" : "text"}" id="bm_${i}" data-khoa="${esc(t.khoa)}" autocomplete="off" placeholder="${esc(t.goi_y || "")}">
+          ${t.bi_mat ? `<button type="button" data-hien="bm_${i}">Hiện</button>` : ""}
+        </div>`).join("")}
+      <details class="ky-thuat">
+        <summary>Chi tiết kỹ thuật (dành cho người rành — thường không cần sửa)</summary>
+        <div class="goi-y">Bài sẽ được gửi tới: <b>${esc(ct.gui?.dia_chi || "")}</b></div>
+        <textarea id="bmCongThuc" spellcheck="false">${esc(JSON.stringify(congThucSach(ct), null, 2))}</textarea>
+      </details>
+      <div class="trang-thai" id="ttLuuKN"></div>
+      <div class="hang-nut">
+        <button class="nut" id="nutLuuKN" type="button">Lưu kết nối</button>
+        <button class="nut chu" id="nutHuyKN" type="button">Huỷ</button>
+      </div>
+    </div>`;
+  $("#vungBieuMau").querySelectorAll("[data-hien]").forEach((n) => n.onclick = () => {
+    const o = document.getElementById(n.dataset.hien);
+    o.type = o.type === "password" ? "text" : "password";
+    n.textContent = o.type === "password" ? "Hiện" : "Ẩn";
+  });
+  $("#nutHuyKN").onclick = () => { $("#vungBieuMau").innerHTML = ""; trangThai.bieuMau = null; };
+  $("#nutLuuKN").onclick = luuKetNoi;
+}
+async function luuKetNoi() {
+  let ct;
+  try { ct = JSON.parse($("#bmCongThuc").value); }
+  catch { hienTT($("#ttLuuKN"), "Phần chi tiết kỹ thuật bị sai định dạng. Hãy bấm Huỷ và tạo lại biểu mẫu.", true); return; }
+  const giaTri = {};
+  $("#vungBieuMau").querySelectorAll("input[data-khoa]").forEach((o) => giaTri[o.dataset.khoa] = o.value.trim());
+  const nut = $("#nutLuuKN");
+  nut.disabled = true;
+  try {
+    await goi("/ket-noi", "POST", { ten: $("#bmTen").value.trim(), cong_thuc: ct, gia_tri: giaTri });
+    $("#vungBieuMau").innerHTML = "";
+    $("#oTenNenTang").value = "";
+    hienTT($("#ttBieuMau"), "Đã lưu kết nối và bật sẵn công tắc.");
+    trangThai.bieuMau = null;
+    taiKetNoi();
+  } catch (e) {
+    hienTT($("#ttLuuKN"), e.message, true);
+  } finally { nut.disabled = false; }
+}
+
+/* ---------------- Bước 4: đăng & báo cáo ---------------- */
+function lyDoChuaDang() {
+  const b = trangThai.bai;
+  if (!b) return "Chưa có bài — dán đường dẫn ở bước 1.";
+  if (!gon(b.tieu_de)) return "Bài chưa có tiêu đề.";
+  const n = doDai(gon(b.tom_tat));
+  if (!n) return "Bài chưa có đoạn tóm tắt.";
+  if (n > GIOI_HAN) return `Tóm tắt đang ${n} ký tự — cần rút xuống dưới 140.`;
+  if (!trangThai.ketNoi.some((k) => k.bat)) return "Chưa bật nơi đăng nào ở bước 2.";
+  return "";
+}
+function capNhatNutDang() {
+  const lyDo = lyDoChuaDang();
+  const soNoi = trangThai.ketNoi.filter((k) => k.bat).length;
+  const nut = $("#nutDang");
+  nut.disabled = !!lyDo || trangThai.dangDang;
+  if (!trangThai.dangDang) nut.textContent = soNoi ? `Đăng lên ${soNoi} nơi đang bật` : "Đăng bài";
+  $("#lyDo").textContent = lyDo;
+}
+$("#nutDang").onclick = async () => {
+  const b = trangThai.bai;
+  const noiDang = trangThai.ketNoi.filter((k) => k.bat);
+  trangThai.dangDang = true;
+  const nut = $("#nutDang");
+  nut.disabled = true;
+  nut.innerHTML = '<span class="xoay"></span>Đang đăng…';
+  veBang(noiDang.map((k) => ({ ten: k.ten, cho: true })));
+  try {
+    const kq = await goi("/dang-bai", "POST", {
+      tieu_de: gon(b.tieu_de), tom_tat: gon(b.tom_tat), link_goc: b.link_goc,
+      anh_url: b.anh_url, anh_tai_len: b.anh_tai_len,
+    });
+    veBang(kq.ket_qua);
+  } catch (e) {
+    $("#bangKetQua").innerHTML = `<div class="canh-bao" style="margin-top:16px">${esc(e.message)}</div>`;
+  } finally {
+    trangThai.dangDang = false;
+    capNhatNutDang();
+  }
+};
+function veBang(ds) {
+  const ok = ds.filter((x) => x.thanh_cong).length;
+  const xong = ds.every((x) => !x.cho);
+  $("#bangKetQua").innerHTML = `
+    ${xong ? `<p style="margin:16px 0 0;font-weight:600">${ok}/${ds.length} nơi đăng thành công.</p>` : ""}
+    <table>
+      <thead><tr><th>Nền tảng</th><th>Trạng thái</th><th>Chi tiết</th></tr></thead>
+      <tbody>${ds.map((x) => `
+        <tr>
+          <td><b>${esc(x.ten)}</b></td>
+          <td>${x.cho ? '<span class="nhan-tt cho"><span class="xoay"></span>Đang đăng</span>'
+            : x.thanh_cong ? '<span class="nhan-tt ok">✓ Thành công</span>' : '<span class="nhan-tt hong">✕ Thất bại</span>'}</td>
+          <td>${x.cho ? "" : x.thanh_cong
+            ? (x.duong_dan ? `<a href="${esc(x.duong_dan)}" target="_blank" rel="noopener">${esc(x.duong_dan)}</a>`
+                           : `<span style="color:var(--chu-phu)">Đã đăng. Nền tảng không trả về đường dẫn công khai (ví dụ tin nhắn riêng, nhóm kín).</span>`)
+            : `<div class="loi-chi-tiet">${x.ma_http ? `[Mã ${x.ma_http}] ` : ""}${esc(x.loi)}</div>${x.goi_y ? `<div class="goi-y-loi">👉 ${esc(x.goi_y)}</div>` : ""}`}</td>
+        </tr>`).join("")}</tbody>
+    </table>`;
+}
+
+/* ---------------- Khởi động ---------------- */
+async function khoiDong() {
+  try {
+    const tt = await goi("/trang-thai");
+    if (!tt.da_thiet_lap) return hienManKhoa("thiet-lap");
+    if (!tt.da_dang_nhap) return hienManKhoa("dang-nhap");
+    trangThai.ai = tt.ai; veAI();
+    await taiKetNoi();
+  } catch (e) {
+    hienTT($("#ttLay"), "Không kết nối được với máy chủ: " + e.message, true);
+  }
+  capNhatNutDang();
+}
+khoiDong();
+</script>
+</body>
+</html>

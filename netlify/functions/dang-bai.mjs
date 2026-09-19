@@ -1,0 +1,222 @@
+// Bộ điều phối của ứng dụng "Đăng bài đa kênh" trên Netlify: mọi đường dẫn /api/dang-bai/...
+import { randomUUID } from "node:crypto";
+import { LoiAI, taoCongThucAI, tomTatAI } from "../dang-bai/tri-tue.mjs";
+import { GIOI_HAN_TOM_TAT, LoiNguoiDung, chuanHoa, doDai, tomTatDonGian, trichXuat } from "../dang-bai/trich-xuat.mjs";
+import { guiAnToan } from "../dang-bai/phan-phoi.mjs";
+import { moKho } from "../dang-bai/kho.mjs";
+import {
+  TEN_COOKIE, bamMatKhau, dungMaKichHoat, dungMatKhau, phienHopLe, taoBiMatPhien, taoPhien,
+} from "../dang-bai/bao-mat.mjs";
+
+const traJson = (duLieu, ma = 200, them = {}) =>
+  new Response(JSON.stringify(duLieu), {
+    status: ma,
+    headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", ...them },
+  });
+const loi = (thongBao, ma = 400) => traJson({ loi: thongBao }, ma);
+const ngu = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function docCookie(req, ten) {
+  for (const phan of (req.headers.get("cookie") || "").split(";")) {
+    const [k, ...v] = phan.trim().split("=");
+    if (k === ten) return v.join("=");
+  }
+  return "";
+}
+const cookiePhien = (giaTri, thoiHan) =>
+  `${TEN_COOKIE}=${giaTri}; Path=/api/dang-bai; HttpOnly; Secure; SameSite=Strict; Max-Age=${thoiHan}`;
+
+// ---------------------------------------------------------------- công thức
+
+const khongDau = (s) => (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d").replace(/[^a-z0-9]/g, "");
+
+async function thuVienCongThuc(goc) {
+  try {
+    const r = await fetch(`${goc}/dang-bai/cong-thuc-mau.json`, { signal: AbortSignal.timeout(8000) });
+    return r.ok ? await r.json() : [];
+  } catch { return []; }
+}
+
+async function timCongThucMau(goc, ten) {
+  const canTim = khongDau(ten);
+  for (const ct of await thuVienCongThuc(goc)) {
+    if ([ct.ten, ...(ct.ten_khac || [])].some((x) => khongDau(x) === canTim)) {
+      return { ...structuredClone(ct), nguon: "Công thức có sẵn trong thư viện mẫu (dang-bai/cong-thuc-mau.json)" };
+    }
+  }
+  return null;
+}
+
+async function congThucWebhook(goc, ten, lyDo) {
+  const ct = await timCongThucMau(goc, "webhook");
+  return ct && { ...ct, ten, nguon: "Kết nối qua Webhook", ly_do: lyDo };
+}
+
+function kiemTraCongThuc(ct) {
+  if (!ct || typeof ct !== "object" || typeof ct.gui !== "object") throw new LoiNguoiDung("Công thức kết nối thiếu phần 'gui'.");
+  if (!ct.gui.dia_chi) throw new LoiNguoiDung("Công thức kết nối thiếu địa chỉ gửi bài.");
+  if (!["json", "form", "multipart"].includes(ct.gui.kieu_than || "json")) throw new LoiNguoiDung("kieu_than phải là json, form hoặc multipart.");
+  if (ct.gui.than && (typeof ct.gui.than !== "object" || Array.isArray(ct.gui.than))) throw new LoiNguoiDung("Phần 'than' phải là một đối tượng JSON.");
+  for (const t of ct.truong || []) if (!/^[A-Za-z0-9_]+$/.test(t.khoa || "")) throw new LoiNguoiDung(`Tên trường không hợp lệ: ${t.khoa}`);
+}
+
+const che = (v) => (v.length > 8 ? "••••" + v.slice(-4) : "••••");
+function ketNoiCongKhai(kn) {
+  const ct = kn.cong_thuc;
+  const dc = ct.gui.dia_chi.trim();
+  let mayChu = "(địa chỉ bạn nhập)";
+  if (!dc.startsWith("{{")) { try { mayChu = new URL(dc.replace(/\{\{[^}]*\}\}/g, "x")).host; } catch {} }
+  return {
+    id: kn.id, ten: kn.ten, bat: kn.bat, may_chu: mayChu, nguon: ct.nguon || "",
+    truong: (ct.truong || []).map((t) => {
+      const v = kn.gia_tri[t.khoa] || "";
+      return { nhan: t.nhan, gia_tri: t.bi_mat && v ? che(v) : v };
+    }),
+  };
+}
+
+// ---------------------------------------------------------------- xử lý
+
+export default async (req) => {
+  const url = new URL(req.url);
+  const duong = url.pathname.replace(/^\/api\/dang-bai/, "") || "/";
+  const pt = req.method;
+  const kho = moKho();
+
+  // Chặn trang web lạ ra lệnh ngầm: mọi lệnh thay đổi phải kèm dấu hiệu của chính ứng dụng
+  if (pt !== "GET" && req.headers.get("x-ung-dung") !== "dang-bai") return loi("Không được phép", 403);
+
+  try {
+    const caiDat = (await kho.doc("cai-dat")) || {};
+    const daThietLap = !!caiDat.mat_khau;
+    const daDangNhap = daThietLap && phienHopLe(docCookie(req, TEN_COOKIE), caiDat.bi_mat_phien);
+    const dl = pt === "POST" ? await req.json().catch(() => ({})) : {};
+
+    if (duong === "/trang-thai") {
+      return traJson({ da_thiet_lap: daThietLap, da_dang_nhap: daDangNhap, ai: daDangNhap && !!caiDat.chia_khoa_claude, gioi_han: GIOI_HAN_TOM_TAT });
+    }
+
+    // Đặt mật khẩu lần đầu, hoặc đặt lại khi quên — đều cần mã kích hoạt
+    if (duong === "/thiet-lap" && pt === "POST") {
+      if (!dungMaKichHoat(dl.ma_kich_hoat)) { await ngu(1500); return loi("Mã kích hoạt không đúng."); }
+      if (String(dl.mat_khau || "").length < 8) return loi("Mật khẩu cần ít nhất 8 ký tự.");
+      caiDat.mat_khau = await bamMatKhau(dl.mat_khau);
+      caiDat.bi_mat_phien = taoBiMatPhien(); // đăng xuất mọi thiết bị cũ
+      await kho.ghi("cai-dat", caiDat);
+      await kho.xoa("dang-nhap-sai");
+      const p = taoPhien(caiDat.bi_mat_phien);
+      return traJson({ ok: true }, 200, { "Set-Cookie": cookiePhien(p.giaTri, p.thoiHan) });
+    }
+
+    if (duong === "/dang-nhap" && pt === "POST") {
+      if (!daThietLap) return loi("Ứng dụng chưa được đặt mật khẩu.");
+      const sai = (await kho.doc("dang-nhap-sai")) || { dem: 0, tu: 0 };
+      if (sai.dem >= 10 && Date.now() - sai.tu < 15 * 60_000) return loi("Nhập sai quá nhiều lần. Đợi 15 phút rồi thử lại.", 429);
+      if (!(await dungMatKhau(dl.mat_khau, caiDat.mat_khau))) {
+        const moi = Date.now() - sai.tu > 15 * 60_000 ? { dem: 1, tu: Date.now() } : { dem: sai.dem + 1, tu: sai.tu };
+        await kho.ghi("dang-nhap-sai", moi);
+        await ngu(1500);
+        return loi("Mật khẩu không đúng.");
+      }
+      await kho.xoa("dang-nhap-sai");
+      const p = taoPhien(caiDat.bi_mat_phien);
+      return traJson({ ok: true }, 200, { "Set-Cookie": cookiePhien(p.giaTri, p.thoiHan) });
+    }
+
+    if (duong === "/dang-xuat" && pt === "POST") {
+      return traJson({ ok: true }, 200, { "Set-Cookie": cookiePhien("", 0) });
+    }
+
+    // ---- Từ đây trở xuống bắt buộc đã đăng nhập
+    if (!daDangNhap) return loi("Cần đăng nhập.", 401);
+    const goc = url.origin;
+    let m;
+
+    if (duong === "/ket-noi" && pt === "GET") {
+      return traJson(((await kho.doc("ket-noi")) || []).map(ketNoiCongKhai));
+    }
+
+    if (duong === "/trich-xuat" && pt === "POST") {
+      const bai = await trichXuat(String(dl.url || ""));
+      let nguon = "Tự động (trích câu chính)", canhBao = "", tomTat = null;
+      if (caiDat.chia_khoa_claude) {
+        try { tomTat = await tomTatAI(caiDat.chia_khoa_claude, bai.tieu_de, bai.noi_dung || bai.mo_ta); nguon = "AI (Claude)"; }
+        catch (e) { canhBao = `AI chưa tóm tắt được (${e.message}), đã dùng cách tự động.`; }
+      }
+      tomTat = tomTat || tomTatDonGian(bai.tieu_de, bai.mo_ta, bai.noi_dung);
+      return traJson({ ...bai, tom_tat: tomTat, nguon_tom_tat: nguon, canh_bao: canhBao, so_chu: bai.noi_dung.split(/\s+/).filter(Boolean).length });
+    }
+
+    if (duong === "/bieu-mau" && pt === "POST") {
+      const ten = chuanHoa(dl.ten);
+      if (!ten) return loi("Anh/chị hãy gõ tên nền tảng.");
+      const mau = await timCongThucMau(goc, ten);
+      if (mau) return traJson(mau);
+      if (caiDat.chia_khoa_claude) {
+        const kq = await taoCongThucAI(caiDat.chia_khoa_claude, ten);
+        return traJson(kq.khong_the ? await congThucWebhook(goc, ten, kq.khong_the) : kq);
+      }
+      return traJson(await congThucWebhook(goc, ten,
+        `Hệ thống chưa biết cách nói chuyện trực tiếp với ${ten}. Bật AI trong Cài đặt để hệ thống tự tìm cách, ` +
+        `hoặc dùng Webhook (qua Make.com/Zapier) — cách này nối được với mọi nền tảng.`));
+    }
+
+    if (duong === "/ket-noi" && pt === "POST") {
+      const ct = dl.cong_thuc;
+      kiemTraCongThuc(ct);
+      delete ct.ly_do;
+      const giaTri = Object.fromEntries(Object.entries(dl.gia_tri || {}).map(([k, v]) => [k, String(v).trim()]));
+      const thieu = (ct.truong || []).filter((t) => t.bat_buoc !== false && !giaTri[t.khoa]).map((t) => t.nhan);
+      if (thieu.length) return loi("Còn thiếu: " + thieu.join(", "));
+      const kn = { id: randomUUID().slice(0, 10), ten: chuanHoa(dl.ten || ct.ten || "Nền tảng"), bat: true, cong_thuc: ct, gia_tri: giaTri };
+      const ds = (await kho.doc("ket-noi")) || [];
+      ds.push(kn);
+      await kho.ghi("ket-noi", ds);
+      return traJson(ketNoiCongKhai(kn));
+    }
+
+    if ((m = duong.match(/^\/ket-noi\/([\w-]+)\/bat-tat$/)) && pt === "POST") {
+      const ds = (await kho.doc("ket-noi")) || [];
+      for (const kn of ds) if (kn.id === m[1]) kn.bat = !!dl.bat;
+      await kho.ghi("ket-noi", ds);
+      return traJson({ ok: true });
+    }
+
+    if ((m = duong.match(/^\/ket-noi\/([\w-]+)$/)) && pt === "DELETE") {
+      await kho.ghi("ket-noi", ((await kho.doc("ket-noi")) || []).filter((kn) => kn.id !== m[1]));
+      return traJson({ ok: true });
+    }
+
+    if (duong === "/dang-bai" && pt === "POST") {
+      const bai = {
+        tieu_de: chuanHoa(dl.tieu_de), tom_tat: chuanHoa(dl.tom_tat),
+        link_goc: String(dl.link_goc || "").trim(), anh_url: String(dl.anh_url || "").trim(),
+        anh_tai_len: dl.anh_tai_len || null,
+      };
+      if (!bai.tieu_de) return loi("Bài chưa có tiêu đề.");
+      if (!bai.tom_tat) return loi("Bài chưa có đoạn tóm tắt.");
+      if (doDai(bai.tom_tat) > GIOI_HAN_TOM_TAT) return loi(`Đoạn tóm tắt đang dài ${doDai(bai.tom_tat)} ký tự — phải dưới 140.`);
+      if (!/^https?:\/\//.test(bai.link_goc)) return loi("Thiếu đường dẫn bài gốc.");
+      const dangBat = ((await kho.doc("ket-noi")) || []).filter((kn) => kn.bat);
+      if (!dangBat.length) return loi("Chưa bật nền tảng nào để đăng.");
+      return traJson({ ket_qua: await Promise.all(dangBat.map((kn) => guiAnToan(kn, bai))) });
+    }
+
+    if (duong === "/cai-dat" && pt === "POST") {
+      const khoa = String(dl.chia_khoa_claude || "").trim();
+      if (khoa && !khoa.startsWith("sk-ant-")) return loi("Chìa khoá Claude thường bắt đầu bằng sk-ant-… Anh/chị kiểm tra lại nhé.");
+      caiDat.chia_khoa_claude = khoa;
+      await kho.ghi("cai-dat", caiDat);
+      return traJson({ ai: !!khoa });
+    }
+
+    return loi("Không có chức năng này", 404);
+  } catch (e) {
+    if (e instanceof LoiNguoiDung) return loi(e.message);
+    if (e instanceof LoiAI) return loi(e.message, 502);
+    console.error(e);
+    return loi(`Lỗi bất ngờ: ${e.message}`, 500);
+  }
+};
+
+export const config = { path: "/api/dang-bai/*" };
