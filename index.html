@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- Thư ký công việc · phiên bản 2026-09-19b · tự cập nhật qua GitHub -->
+<!-- Thư ký công việc · phiên bản 2026-09-19c · tự cập nhật qua GitHub -->
 <html lang="vi">
 <head>
 <meta charset="utf-8">
@@ -360,6 +360,93 @@ details.data-table th:first-child,details.data-table td:first-child{text-align:l
 .steps b{color:var(--ink)}
 @media (max-width:980px){ .klcv-grid{grid-template-columns:1fr} .tiles{grid-template-columns:repeat(2,minmax(0,1fr))} }
 
+/* Dashboard từng dự án — màu thương hiệu */
+.pj-scope{--pcx:var(--pc)}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]) .pj-scope{--pcx:var(--pc-d)} }
+:root[data-theme="dark"] .pj-scope{--pcx:var(--pc-d)}
+.pj-tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:16px;scrollbar-width:thin}
+.pj-tab{flex:none;display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 16px;border-radius:12px;border:2px solid var(--line);
+  background:var(--surface-2);font-weight:700;font-size:15px;white-space:nowrap}
+.pj-tab i{width:12px;height:12px;border-radius:4px;background:var(--pcx);flex:none}
+.pj-tab:hover{border-color:var(--pcx)}
+.pj-tab.on{background:var(--pcx);border-color:var(--pcx);color:var(--pc-on)}
+.pj-tab.on i{background:var(--pc-on)}
+.ov-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:16px;align-items:start}
+.pj-minis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.pj-mini{display:block;text-align:left;background:var(--surface);border:1px solid var(--line);border-top:6px solid var(--pcx);border-radius:16px;padding:14px;width:100%}
+.pj-mini:hover{box-shadow:0 0 0 2px var(--pcx)}
+.pj-mini b{display:block;font-size:17px;font-weight:800}
+.pj-mini .m{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px;font-size:13px;color:var(--muted)}
+.segs{display:flex;gap:3px;margin-top:10px}
+.segs i{flex:1;height:8px;border-radius:3px;background:var(--grid)}
+.segs i.ok{background:var(--pcx)} .segs i.mid{background:color-mix(in srgb,var(--pcx) 45%,var(--grid))}
+.pj-hero{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:18px 20px;border-radius:18px;background:var(--pcx);color:var(--pc-on);margin-bottom:16px}
+.pj-hero small{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;opacity:.8}
+.pj-hero h3{margin:0;font-size:26px;font-weight:800;line-height:1.15}
+.hero-stats{display:flex;gap:10px;flex-wrap:wrap;margin-left:auto}
+.hs{background:color-mix(in srgb,var(--pc-on) 14%,transparent);border-radius:12px;padding:8px 12px;min-width:104px}
+.hs small{opacity:.85}
+.hs b{display:block;font-size:19px;font-weight:800;font-variant-numeric:tabular-nums}
+.pj-hero .btn{background:var(--pc-on);color:var(--pcx);border-color:transparent}
+.dash-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+.box.box-brand{border-top:4px solid var(--pcx)}
+/* biểu đồ tiến độ KPI */
+.bl{display:grid;grid-template-columns:minmax(120px,240px) minmax(0,1fr) 112px;gap:10px 14px;align-items:center}
+.bl-lab{font-size:14px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bl-track{position:relative;height:22px;background:var(--grid);border-radius:6px}
+.bl-bar{position:absolute;left:0;top:0;bottom:0;border-radius:6px;background:var(--pcx)}
+.bl-bar.s-mid,.bl-bar.s-low{background:color-mix(in srgb,var(--pcx) 50%,var(--grid))}
+.bl-100{position:absolute;top:-5px;bottom:-5px;width:0;border-left:2px dashed var(--ink);opacity:.55}
+.bl-pk{position:absolute;top:50%;width:12px;height:12px;background:var(--surface);border:3px solid var(--ink);transform:translate(-50%,-50%) rotate(45deg);border-radius:2px}
+.bl-val{font-size:14px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+.bl-val.ok{color:var(--ok)} .bl-val.mid{color:var(--amber)} .bl-val.low{color:var(--red)} .bl-val.na{color:var(--muted);font-weight:600}
+.bl-axis{position:relative;height:18px;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.bl-axis span{position:absolute;transform:translateX(-50%)}
+.bl-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-top:12px}
+.bl-legend i{display:inline-block;vertical-align:-2px;margin-right:6px}
+.kpi-tbl{width:100%;border-collapse:collapse;font-size:14px}
+.kpi-tbl th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);text-align:left;padding:6px 8px;border-bottom:2px solid var(--line);white-space:nowrap}
+.kpi-tbl td{padding:9px 8px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+.kpi-tbl td.n{white-space:nowrap}
+.st{display:inline-flex;align-items:center;gap:4px;font-weight:700;font-size:13px;white-space:nowrap}
+.st.ok{color:var(--ok)} .st.mid{color:var(--amber)} .st.low{color:var(--red)} .st.na{color:var(--muted)}
+.pj-scope .dd span.on{background:var(--pcx);border-color:var(--pcx);color:var(--pc-on)}
+/* hộp sửa dự án */
+.modal.pj-modal{width:920px}
+.pjm-top{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
+.pjm-color{display:flex;gap:8px;align-items:center}
+.pjm-color input[type=color]{width:54px;height:46px;border:2px solid var(--line);border-radius:12px;background:var(--surface-2);padding:3px;cursor:pointer}
+.swatches{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.swatches button{width:28px;height:28px;border-radius:8px;border:2px solid var(--surface);box-shadow:0 0 0 1px var(--line)}
+.swatches button:hover{transform:scale(1.1)}
+.pjm-h{font-size:15px;font-weight:800;margin:20px 0 8px;display:flex;align-items:center;gap:8px}
+.pjm-h span{font-weight:500;font-size:13px;color:var(--muted)}
+.pjm-rows{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+.kr,.tk{display:grid;gap:8px;align-items:center}
+.kr{grid-template-columns:minmax(0,2fr) repeat(3,minmax(0,1fr)) 40px}
+.tk{grid-template-columns:minmax(0,2fr) 90px 90px 204px 40px}
+.kr .field,.tk .field{height:42px;font-size:15px;min-width:0;width:100%}
+.kr.head,.tk.head{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.dpick{display:inline-flex;gap:3px}
+.dpick label{margin:0 !important;cursor:pointer}
+.dpick input{position:absolute;opacity:0;pointer-events:none}
+.dpick span{width:26px;height:30px;border-radius:7px;display:grid;place-items:center;font-size:12px;font-weight:700;border:2px solid var(--line);background:var(--surface-2);color:var(--muted)}
+.dpick input:checked + span{background:var(--brand);border-color:var(--brand);color:#fff}
+.dpick input:focus-visible + span{outline:2px solid var(--brand);outline-offset:1px}
+@media (max-width:980px){ .ov-grid{grid-template-columns:1fr} }
+@media (max-width:720px){
+  .pj-minis{grid-template-columns:1fr}
+  .bl{grid-template-columns:minmax(0,1fr) 90px}
+  .bl-lab{grid-column:1 / -1;white-space:normal}
+  .bl .bl-sp{display:none}
+  .kr{grid-template-columns:1fr 1fr}
+  .kr [data-f=goal]{grid-column:1 / -1}
+  .tk{grid-template-columns:1fr 1fr}
+  .tk [data-f=name]{grid-column:1 / -1}
+  .kr.head,.tk.head{display:none}
+  .hero-stats{margin-left:0}
+}
+
 /* Lịch trình tuần */
 .week{margin-top:20px}
 .week-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:12px}
@@ -498,7 +585,8 @@ details.data-table th:first-child,details.data-table td:first-child{text-align:l
       </button>
       <div class="dropdown menu-list" id="menuPanel" style="width:300px;padding:8px">
         <button data-act="welcome">👋 Xem lại bảng chào hôm nay</button>
-        <button data-act="klcv-connect">📊 Kết nối file KLCV (Google Sheets)</button>
+        <button data-act="pj-new">📊 Thêm dự án &amp; KPI</button>
+        <button data-act="kpi-import">📥 Cập nhật KPI hiện tại từ file .csv</button>
         <button data-act="notify">🔔 Bật thông báo góc màn hình</button>
         <button data-act="test-notify">🧪 Thử một thông báo</button>
         <hr>
@@ -607,27 +695,31 @@ details.data-table th:first-child,details.data-table td:first-child{text-align:l
   </section>
 </div>
 
-<!-- Kết nối file KLCV -->
-<div class="overlay" id="klcvModal"><div class="modal">
-  <h2>Kết nối file KLCV</h2>
-  <p class="lead">Trang sẽ đọc thẳng file Google Sheets khối lượng công việc và tự vẽ bảng KPI, khối lượng việc, task tuần.</p>
-  <ol class="steps">
-    <li>Mở file KLCV → <b>Tệp → Chia sẻ → Công bố lên web</b>.</li>
-    <li>Chọn trang tính chứa bảng và định dạng <b>.csv</b> → <b>Công bố</b>.</li>
-    <li>Copy link vừa hiện ra, dán vào ô dưới.</li>
-  </ol>
-  <label for="klcvUrl">Link file đã công bố (.csv)</label>
-  <input class="field" id="klcvUrl" placeholder="https://docs.google.com/spreadsheets/d/e/…/pub?output=csv">
-  <label for="klcvSheetUrl">Link mở file gốc (không bắt buộc — để bấm mở nhanh)</label>
-  <input class="field" id="klcvSheetUrl" placeholder="https://docs.google.com/spreadsheets/d/…/edit">
-  <label class="urgent-toggle" style="margin-top:14px !important;width:fit-content"><input type="checkbox" id="klcvDaily" checked> Đưa task tuần trong file vào mục “Hôm nay” theo ngày đã tick (T2 … CN)</label>
-  <p class="hint" style="margin:12px 0 0">🔒 Link chỉ lưu trong trình duyệt này, không nằm trong code trang web. Người lạ mở trang sẽ không thấy số liệu.</p>
+<!-- Sửa / thêm dự án -->
+<div class="overlay" id="pjModal"><div class="modal pj-modal">
+  <h2 id="pjmTitle">Thêm dự án</h2>
+  <p class="lead">KPI mục tiêu &amp; KPI dự án anh chốt ở đầu dự án — chỉ thay đổi khi anh tự sửa tại đây. KPI hiện tại có thể cập nhật từ file .csv.</p>
+  <div class="pjm-top">
+    <div style="flex:1;min-width:220px"><label for="pjmName">Tên dự án</label><input class="field" id="pjmName" placeholder="Tên khách hàng / dự án" maxlength="60"></div>
+    <div><label for="pjmColor">Màu thương hiệu</label>
+      <div class="pjm-color"><input type="color" id="pjmColor" value="#004aef"><button class="btn btn-ghost btn-sm" id="pjmEye" type="button" hidden>🎯 Hút màu từ logo</button></div></div>
+  </div>
+  <div class="swatches" id="pjmSwatches" aria-label="Màu gợi ý"></div>
+  <h3 class="pjm-h">KPI <span>Nhập số như trong file: 48,3% · 120.000 · 50</span></h3>
+  <div class="kr head"><span>Mục tiêu</span><span>KPI mục tiêu (đợt)</span><span>KPI dự án</span><span>KPI hiện tại</span><span></span></div>
+  <div class="pjm-rows" id="pjmKpis"></div>
+  <button class="btn btn-ghost btn-sm" id="pjmAddKpi" type="button">+ Thêm KPI</button>
+  <h3 class="pjm-h">Task hằng tuần <span>Tick ngày làm → task tự vào mục “Hôm nay”</span></h3>
+  <div class="tk head"><span>Task</span><span>SL / tuần</span><span>Phút / lần</span><span>Ngày làm</span><span></span></div>
+  <div class="pjm-rows" id="pjmTasks"></div>
+  <button class="btn btn-ghost btn-sm" id="pjmAddTask" type="button">+ Thêm task</button>
   <div class="modal-actions">
-    <button class="btn btn-danger left" id="klcvDisconnect">Ngắt kết nối</button>
-    <button class="btn btn-ghost" id="klcvCancel">Huỷ</button>
-    <button class="btn btn-primary" id="klcvSave">Kết nối &amp; tải dữ liệu</button>
+    <button class="btn btn-danger left" id="pjmDelete" type="button">Xoá dự án</button>
+    <button class="btn btn-ghost" id="pjmCancel" type="button">Huỷ</button>
+    <button class="btn btn-primary" id="pjmSave" type="button">Lưu dự án</button>
   </div>
 </div></div>
+<input type="file" id="kpiFile" accept=".csv,text/csv" class="visually-hidden">
 
 <!-- Pop-up chào khi mở web -->
 <div class="overlay" id="welcome"><div class="modal" id="welcomeBody"></div></div>
@@ -664,7 +756,7 @@ details.data-table th:first-child,details.data-table td:first-child{text-align:l
 
 <!-- Hộp xác nhận -->
 <div class="overlay" id="confirmBox"><div class="modal" style="width:440px">
-  <h2>Chắc chắn chứ?</h2>
+  <h2 id="cfTitle">Chắc chắn chứ?</h2>
   <p class="lead" id="cfMsg"></p>
   <div class="modal-actions"><button class="btn btn-ghost" id="cfCancel">Huỷ</button><button class="btn btn-primary" id="cfOk">Đồng ý</button></div>
 </div></div>
@@ -1004,7 +1096,7 @@ function render(){
       ${DB.tasks.length ? '' : '<br><button class="btn btn-ghost" data-act="samples">✨ Xem thử với vài việc mẫu</button>'}</div>`;
   if(b.klcvToday.length){
     const doneK = b.klcvToday.filter(t => t.doneAt).length;
-    $('#todayList').innerHTML += `<div class="klcv-sub-h">📁 Task tuần từ file KLCV <span>${b.klcvToday.length} task · ≈ ${fmtMin(b.klcvToday.reduce((a, t) => a + (t.est || 0), 0))}</span></div>` +
+    $('#todayList').innerHTML += `<div class="klcv-sub-h">📁 Task tuần của các dự án <span>${b.klcvToday.length} task · ≈ ${fmtMin(b.klcvToday.reduce((a, t) => a + (t.est || 0), 0))}</span></div>` +
       taskTable(b.klcvToday, t => ({ cls: '', status: `<span class="tag time">${t.est ? '≈ ' + fmtMin(t.est) : 'Hôm nay'}</span>` }));
   }
 
@@ -1028,7 +1120,7 @@ function render(){
       <div class="day-head"><span class="wd${n === 1 ? ' sun' : ''}" title="${WD_NAME[n]}">${n}</span>
         <div><b>${i === 0 ? 'Hôm nay' : i === 1 ? 'Ngày mai' : `${d.getDate()}/${d.getMonth()+1}`}</b><small>${i < 2 ? `${d.getDate()}/${d.getMonth()+1}` : ''}</small></div></div>
       ${list.length ? list.map(t => chip(t, i)).join('') : (nK ? '' : '<div class="day-empty">Trống</div>')}
-      ${nK ? `<div class="day-klcv">📁 ${nK} task KLCV</div>` : ''}
+      ${nK ? `<div class="day-klcv">📁 ${nK} task dự án</div>` : ''}
     </div>`;
   }
   $('#weekGrid').innerHTML = wk;
@@ -1044,12 +1136,14 @@ function render(){
   document.title = baseTitle();
 }
 /* =========================================================
-   DỰ ÁN & KPI — đọc file KLCV (Google Sheets đã công bố .csv)
+   DỰ ÁN & KPI — KPI mục tiêu nhập tay; KPI hiện tại cập nhật từ file .csv tải từ Sheet
    ========================================================= */
 const fmtMin = m => { m = Math.round(m || 0); if(m < 60) return m + ' phút'; const h = m / 60; return (Math.round(h * 10) / 10).toString().replace('.', ',') + ' giờ'; };
 const fmtInt = n => Math.round(n).toLocaleString('vi-VN');
+const fmtPct = p => (Math.round(p * 10) / 10).toString().replace('.', ',') + '%';
 function parseCSV(text){
   const rows = []; let row = [], cell = '', q = false;
+  text = text.replace(/^﻿/, '');
   for(let i = 0; i < text.length; i++){
     const c = text[i];
     if(q){ if(c === '"'){ if(text[i + 1] === '"'){ cell += '"'; i++; } else q = false; } else cell += c; }
@@ -1070,218 +1164,301 @@ function numVN(raw){
   else if(!pct && /^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, '');
   const v = parseFloat(t); return isNaN(v) ? null : { v, pct };
 }
-function csvUrlOf(link){
-  link = (link || '').trim(); if(!link) return null;
-  if(/\/spreadsheets\/d\/e\//.test(link) || /output=csv/.test(link)){
-    let u = link.replace('/pubhtml', '/pub');
-    if(!/output=csv/.test(u)) u += (u.includes('?') ? '&' : '?') + 'output=csv';
-    return u;
-  }
-  const m = link.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
-  if(m){ const gid = (link.match(/[#&?]gid=(\d+)/) || [])[1] || '0'; return `https://docs.google.com/spreadsheets/d/${m[1]}/gviz/tq?tqx=out:csv&gid=${gid}`; }
-  return null;
-}
 const kst = p => p == null ? 'na' : p >= 100 ? 'ok' : p >= 80 ? 'mid' : 'low';
 const KST_LABEL = { ok: 'Đạt', mid: 'Gần đạt', low: 'Chưa đạt', na: 'Chưa có số' };
-function parseKLCV(rows){
-  const norm = c => strip(String(c || '').toLowerCase()).replace(/\s+/g, ' ').trim();
-  const H = rows.findIndex(r => r.some(c => norm(c) === 'du an') && r.some(c => /^tasks?$/.test(norm(c))));
-  if(H < 0) throw new Error('Không thấy dòng tiêu đề (cần có cột “Dự án” và “Tasks”).');
-  const h = rows[H].map(norm), col = f => h.findIndex(f);
-  const C = {
-    proj: col(x => x === 'du an'), goal: col(x => x.startsWith('muc tieu')), tgt: col(x => x.startsWith('kpi muc tieu')),
-    pkpi: col(x => x === 'kpi du an'), cur: col(x => x.startsWith('kpi hien tai')),
-    pr: col(x => x.startsWith('ty le hoan thanh') && x.includes('dot')), pp: col(x => x.startsWith('ty le hoan thanh') && x.includes('muc tieu du an')),
-    task: col(x => /^tasks?$/.test(x)), qty: col(x => x.startsWith('so luong')), min: col(x => x.startsWith('thoi gian')), note: col(x => x === 'note'),
-  };
-  const D = ['t2','t3','t4','t5','t6','t7','cn'].map(d => h.indexOf(d));
-  const totalCol = C.note >= 0 ? C.note + 1 : -1;
-  const g = (r, i) => i >= 0 && r[i] != null ? String(r[i]).trim() : '';
-  const projects = []; let cur = null;
-  for(let i = H + 1; i < rows.length; i++){
-    const r = rows[i], name = g(r, C.proj), goal = g(r, C.goal), task = g(r, C.task).replace(/^[-–•]\s*/, '');
-    const hasData = name || goal || task || g(r, C.cur) || g(r, C.tgt) || g(r, C.qty);
-    if(!hasData && !g(r, totalCol)){ cur = null; continue; }           // dòng trống ngăn cách dự án
-    if(name && (!cur || cur.name !== name)){ cur = { name, kpis: [], tasks: [], total: null }; projects.push(cur); }
-    if(!cur){ cur = { name: 'Chưa ghi dự án', kpis: [], tasks: [], total: null }; projects.push(cur); }
-    const tot = numVN(g(r, totalCol)); if(tot && cur.total == null) cur.total = tot.v;
-    if(goal || g(r, C.cur) || g(r, C.tgt)){
-      const k = { goal: goal || '(chưa ghi mục tiêu)', tgt: g(r, C.tgt), pkpi: g(r, C.pkpi), cur: g(r, C.cur), pr: g(r, C.pr), pp: g(r, C.pp), pct: null, approx: false };
-      const pr = numVN(k.pr);
-      if(pr) k.pct = pr.v;
-      else if(!/\//.test(k.tgt || k.pkpi)){
-        const tg = numVN(k.tgt) || numVN(k.pkpi), cv = numVN(k.cur);
-        if(tg && cv && tg.v > 0){ k.pct = cv.v / tg.v * 100; k.approx = true; }
-      }
-      cur.kpis.push(k);
-    }
-    if(task){
-      const days = D.map(j => /^(true|x|✓|✔|1|có|co)$/i.test(g(r, j)));
-      const qty = (numVN(g(r, C.qty)) || {}).v ?? null, min = (numVN(g(r, C.min)) || {}).v ?? null;
-      cur.tasks.push({ name: task, qty, min, days, week: qty != null && min != null ? qty * min : null });
-    }
-  }
-  projects.forEach(pj => { if(pj.total == null){ const s = pj.tasks.reduce((a, t) => a + (t.week || 0), 0); pj.total = s || null; } });
-  return projects.filter(pj => pj.kpis.length || pj.tasks.length);
+const KST_ICON = { ok: '✓', mid: '▲', low: '✕', na: '–' };
+const normName = s => strip(String(s || '').toLowerCase()).replace(/[^a-z0-9%]+/g, ' ').trim();
+const ratio = (a, b) => { const x = numVN(a), y = numVN(b); return x && y && y.v > 0 ? x.v / y.v * 100 : null; };
+const pctOf = k => ratio(k.current, k.target);
+const pctProj = k => ratio(k.current, k.projectKpi);
+const projWeek = pj => (pj.tasks || []).reduce((a, t) => a + (+t.qty || 0) * (+t.min || 0), 0);
+// Màu thương hiệu
+const PJ_COLORS = ['#E31937', '#005BAA', '#00843D', '#F58220', '#6A2C91', '#0E7C86', '#223771', '#C9A227', '#8B5E3C', '#5B6770'];
+function suggestColor(name){
+  const used = (DB.projects || []).map(p => (p.color || '').toLowerCase());
+  return PJ_COLORS.find(c => !used.includes(c.toLowerCase())) || PJ_COLORS[0];
 }
-// Task tuần có tick ngày → tạo việc trong 7 ngày tới (không trùng, bỏ việc đã xoá khỏi file)
+function hexLum(hex){ const h = (hex || '#004aef').replace('#', ''); const [r, g, b] = [0, 2, 4].map(i => { const c = parseInt(h.slice(i, i + 2), 16) / 255; return c <= .03928 ? c / 12.92 : ((c + .055) / 1.055) ** 2.4; }); return .2126 * r + .7152 * g + .0722 * b; }
+function mixHex(hex, to, t){ const a = hex.replace('#', ''), b = to.replace('#', ''); return '#' + [0, 2, 4].map(i => Math.round(parseInt(a.slice(i, i + 2), 16) * (1 - t) + parseInt(b.slice(i, i + 2), 16) * t).toString(16).padStart(2, '0')).join(''); }
+function pjVars(pj){
+  const c = /^#[0-9a-f]{6}$/i.test(pj && pj.color || '') ? pj.color : '#004aef', L = hexLum(c);
+  return `--pc:${c};--pc-on:${L > .42 ? '#10131f' : '#ffffff'};--pc-d:${L < .1 ? mixHex(c, '#ffffff', .38) : c}`;
+}
+// Task tuần của các dự án → việc trong 7 ngày tới (không trùng; bỏ task đã xoá)
 function materializeKLCV(){
-  const tk = todayKey(), base = fromKey(tk);
-  // dọn task KLCV quá 60 ngày cho nhẹ bộ nhớ
-  const old = keyOf(addDays(base, -60));
+  DB.projects = DB.projects || [];
+  const tk = todayKey(), base = fromKey(tk), old = keyOf(addDays(base, -60));
   DB.tasks = DB.tasks.filter(t => !(t.source === 'klcv' && t.date < old));
-  const on = DB.klcv && DB.settings.klcvUrl && DB.settings.klcvDaily !== false;
   const want = new Map();
-  if(on){
-    for(let i = 0; i < 7; i++){
-      const d = addDays(base, i), k = keyOf(d), di = (d.getDay() + 6) % 7;
-      DB.klcv.projects.forEach(pj => pj.tasks.forEach((t, j) => {
-        if(!t.days[di]) return;
-        const nDays = t.days.filter(Boolean).length || 1;
-        const key = `klcv|${strip(pj.name.toLowerCase())}|${strip(t.name.toLowerCase())}|${k}`;
-        want.set(key, { title: t.name + (t.qty ? ` (${fmtInt(t.qty)}/tuần)` : ''), project: pj.name, date: k, est: t.week ? t.week / nDays : null, order: j });
-      }));
-    }
+  for(let i = 0; i < 7; i++){
+    const d = addDays(base, i), k = keyOf(d), di = (d.getDay() + 6) % 7;
+    DB.projects.forEach(pj => (pj.tasks || []).forEach((t, j) => {
+      if(!t.name || !t.days || !t.days[di]) return;
+      const nDays = t.days.filter(Boolean).length || 1, wk = (+t.qty || 0) * (+t.min || 0);
+      want.set(`klcv|${pj.id}|${t.id}|${k}`, { title: t.name + (+t.qty ? ` (${fmtInt(+t.qty)}/tuần)` : ''), project: pj.name, projectId: pj.id, date: k, est: wk ? wk / nDays : null, order: j });
+    }));
   }
   const have = new Set();
   DB.tasks = DB.tasks.filter(t => {
     if(t.source !== 'klcv') return true;
     have.add(t.klcvKey);
-    return t.doneAt || t.date < tk || want.has(t.klcvKey);
+    if(t.doneAt || t.date < tk) return true;
+    if(!want.has(t.klcvKey)) return false;
+    Object.assign(t, want.get(t.klcvKey)); return true;
   });
-  want.forEach((v, key) => {
-    if(have.has(key)) return;
-    DB.tasks.push({ id: uid(), source: 'klcv', klcvKey: key, raw: v.title, links: [], time: null, createdAt: Date.now(), doneAt: null, remind30: true, ...v });
-  });
+  want.forEach((v, key) => { if(!have.has(key)) DB.tasks.push({ id: uid(), source: 'klcv', klcvKey: key, raw: v.title, links: [], time: null, createdAt: Date.now(), doneAt: null, remind30: true, ...v }); });
   save();
-}
-let klcvLoading = false, klcvError = '';
-async function syncKLCV(manual){
-  const src = csvUrlOf(DB.settings.klcvUrl);
-  if(!src){ if(manual) openKlcvModal(); return; }
-  klcvLoading = true; renderKLCV();
-  try{
-    const res = await fetch(src + (src.includes('?') ? '&' : '?') + '_=' + Date.now(), { cache: 'no-store' });
-    if(!res.ok) throw new Error(res.status === 404 ? 'not_public' : 'HTTP ' + res.status);
-    const text = await res.text();
-    if(/^\s*<(!doctype|html)/i.test(text)) throw new Error('not_public');
-    const projects = parseKLCV(parseCSV(text));
-    if(!projects.length) throw new Error('Không đọc được dự án nào trong file.');
-    DB.klcv = { fetchedAt: Date.now(), projects }; klcvError = '';
-    materializeKLCV(); render();
-    if(manual) toast(`✓ Đã tải ${projects.length} dự án từ file KLCV`, 'ok');
-  }catch(e){
-    klcvError = (e.message === 'not_public' || e instanceof TypeError)
-      ? 'Chưa đọc được file: kiểm tra file đã “Công bố lên web” dạng .csv và link dán đúng chưa.'
-      : e.message;
-    if(manual) toast(klcvError, 'err');
-  }finally{ klcvLoading = false; renderKLCV(); }
-}
-function openKlcvModal(){
-  $('#klcvUrl').value = DB.settings.klcvUrl || ''; $('#klcvSheetUrl').value = DB.settings.klcvSheetUrl || '';
-  $('#klcvDaily').checked = DB.settings.klcvDaily !== false;
-  $('#klcvDisconnect').hidden = !DB.settings.klcvUrl;
-  $('#menuPanel').classList.remove('open');
-  $('#klcvModal').classList.add('open'); setTimeout(() => $('#klcvUrl').focus(), 50);
-}
-$('#klcvCancel').onclick = () => $('#klcvModal').classList.remove('open');
-$('#klcvSave').onclick = () => {
-  const url = $('#klcvUrl').value.trim();
-  if(!csvUrlOf(url)){ toast('Link chưa đúng — cần link Google Sheets (dạng docs.google.com/spreadsheets/…)', 'err'); $('#klcvUrl').focus(); return; }
-  DB.settings.klcvUrl = url; DB.settings.klcvSheetUrl = $('#klcvSheetUrl').value.trim(); DB.settings.klcvDaily = $('#klcvDaily').checked;
-  save(); $('#klcvModal').classList.remove('open'); syncKLCV(true);
-};
-$('#klcvDisconnect').onclick = async () => {
-  if(!(await askConfirm('Ngắt kết nối file KLCV? Bảng KPI sẽ bị ẩn và các task tuần chưa làm sẽ được gỡ khỏi lịch.', 'Ngắt kết nối'))) return;
-  delete DB.settings.klcvUrl; delete DB.settings.klcvSheetUrl; DB.klcv = null;
-  DB.tasks = DB.tasks.filter(t => !(t.source === 'klcv' && !t.doneAt));
-  save(); $('#klcvModal').classList.remove('open'); render(); toast('Đã ngắt kết nối file KLCV', 'ok');
-};
-async function copyText(text, okMsg){
-  try{ await navigator.clipboard.writeText(text); toast(okMsg, 'ok'); }
-  catch(e){ askConfirm('Trình duyệt chặn sao chép tự động. Bôi đen đoạn dưới rồi bấm Ctrl+C:\n\n' + text, 'Xong'); }
-}
-function shareKLCV(){
-  if(!DB.settings.klcvUrl) return openKlcvModal();
-  const link = location.origin + location.pathname + '#klcv=' + encodeURIComponent(DB.settings.klcvUrl);
-  copyText(link, '✓ Đã copy link — gửi cho sếp, sếp mở là thấy ngay bảng KPI');
 }
 function weekRange(){ const t = fromKey(todayKey()), mon = addDays(t, -((t.getDay() + 6) % 7)); return [keyOf(mon), keyOf(addDays(mon, 6))]; }
 function weekStats(){
-  const [a, b] = weekRange();
-  const list = DB.tasks.filter(t => t.source === 'klcv' && t.date >= a && t.date <= b);
-  const by = {};
-  list.forEach(t => { const x = by[t.project] = by[t.project] || { plan: 0, done: 0, minDone: 0 }; x.plan++; if(t.doneAt){ x.done++; x.minDone += t.est || 0; } });
+  const [a, b] = weekRange(), by = {};
+  const list = DB.tasks.filter(t => t.source === 'klcv' && t.projectId && t.date >= a && t.date <= b);
+  list.forEach(t => { const x = by[t.projectId] = by[t.projectId] || { plan: 0, done: 0 }; x.plan++; if(t.doneAt) x.done++; });
   return { a, b, by, plan: list.length, done: list.filter(t => t.doneAt).length };
 }
+function kpiSummary(pj){
+  const ks = (pj.kpis || []).map(k => ({ k, p: pctOf(k) })).filter(x => x.p != null);
+  const ok = ks.filter(x => x.p >= 100).length;
+  return { n: ks.length, ok, st: !ks.length ? 'na' : ok === ks.length ? 'ok' : ks.some(x => x.p < 80) ? 'low' : 'mid', list: ks };
+}
 function reportText(){
-  const K = DB.klcv, W = weekStats();
+  const W = weekStats(), P = DB.projects || [];
   const lines = [`BÁO CÁO TUẦN ${dm(W.a)} – ${dm(W.b)}`, ''];
-  K.projects.forEach((pj, i) => {
-    const ks = pj.kpis.filter(k => k.pct != null), ok = ks.filter(k => k.pct >= 100).length, w = W.by[pj.name];
-    lines.push(`${i + 1}. ${pj.name} — KPI đạt ${ok}/${ks.length}` + (w ? ` · task xong ${w.done}/${w.plan}` : '') + (pj.total ? ` · khối lượng ${fmtInt(pj.total)} phút/tuần` : ''));
-    ks.filter(k => k.pct < 100).forEach(k => lines.push(`   • Chưa đạt: ${k.goal} — ${k.cur || '?'} (${(Math.round(k.pct * 10) / 10).toString().replace('.', ',')}%)`));
+  P.forEach((pj, i) => {
+    const s = kpiSummary(pj), w = W.by[pj.id], wk = projWeek(pj);
+    lines.push(`${i + 1}. ${pj.name} — KPI đạt ${s.ok}/${s.n}` + (w ? ` · task xong ${w.done}/${w.plan}` : '') + (wk ? ` · khối lượng ${fmtInt(wk)} phút/tuần` : ''));
+    s.list.filter(x => x.p < 100).forEach(x => lines.push(`   • Chưa đạt: ${x.k.goal} — hiện tại ${x.k.current} / mục tiêu ${x.k.target} (${fmtPct(x.p)})`));
   });
-  const all = K.projects.flatMap(pj => pj.kpis.filter(k => k.pct != null));
-  lines.push('', `Tổng: KPI đạt ${all.filter(k => k.pct >= 100).length}/${all.length} · task tuần xong ${W.done}/${W.plan}`);
+  const all = P.map(kpiSummary);
+  lines.push('', `Tổng: KPI đạt ${all.reduce((a, s) => a + s.ok, 0)}/${all.reduce((a, s) => a + s.n, 0)} · task tuần xong ${W.done}/${W.plan}`);
   return lines.join('\n');
 }
+async function copyText(text, okMsg){
+  try{ await navigator.clipboard.writeText(text); toast(okMsg, 'ok'); }
+  catch(e){ askConfirm(text, 'Đóng', { title: 'Bôi đen rồi bấm Ctrl+C để copy', info: true }); }
+}
+const tHead = '<span class="visually-hidden">Ngày</span>';
+function dayChips(days, today){ return `<span class="dd">${(days || []).map((on, i) => `<span class="${on ? 'on' : ''}${i === today ? ' today' : ''}" title="${WD_NAME[i === 6 ? 1 : i + 2]}">${i === 6 ? 1 : i + 2}</span>`).join('')}</span>`; }
+
+let pjTab = null;
 function renderKLCV(){
-  const K = DB.klcv, url = DB.settings.klcvUrl;
-  const sheetBtn = DB.settings.klcvSheetUrl ? `<a class="btn btn-ghost btn-sm" href="${esc(DB.settings.klcvSheetUrl)}" target="_blank" rel="noopener">↗ Mở file Sheet</a>` : '';
-  $('#klcvActions').innerHTML = url
-    ? `<button class="btn btn-ghost btn-sm" data-act="klcv-sync"${klcvLoading ? ' disabled' : ''}>${klcvLoading ? 'Đang tải…' : '↻ Làm mới'}</button>${sheetBtn}
-       <button class="btn btn-ghost btn-sm" data-act="klcv-share">🔗 Link cho sếp</button><button class="btn btn-ghost btn-sm" data-act="klcv-connect">⚙ Kết nối</button>`
-    : '';
-  $('#klcvSub').textContent = K && url ? `${K.projects.length} dự án · cập nhật lúc ${new Date(K.fetchedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} ${dm(keyOf(new Date(K.fetchedAt)))}` : '';
-  if(!url || !K){
-    $('#klcvBody').innerHTML = `${klcvError ? `<div class="klcv-err">⚠ ${esc(klcvError)}</div>` : ''}<div class="klcv-empty">
-      <div><b style="font-size:17px">Nối file KLCV để xem KPI &amp; khối lượng việc của từng dự án</b>
-      <p>Trang đọc thẳng file Google Sheets: tự tính dự án nào đạt / tụt KPI, tổng thời gian mỗi tuần, và đưa task tuần (đã tick T2 … CN) vào mục “Hôm nay”. Cuối tuần bấm 1 nút là có báo cáo gửi sếp.</p></div>
-      <button class="btn btn-primary" data-act="klcv-connect">${klcvLoading ? 'Đang tải…' : '📊 Kết nối file KLCV'}</button></div>`;
+  const P = DB.projects || [];
+  if(!pjTab || (pjTab !== 'all' && !P.some(p => p.id === pjTab))) pjTab = P.some(p => p.id === DB.settings.pjTab) ? DB.settings.pjTab : 'all';
+  $('#klcvActions').innerHTML = `${P.length ? '<button class="btn btn-ghost btn-sm" data-act="kpi-import">📥 Cập nhật KPI hiện tại (.csv)</button>' : ''}<button class="btn btn-primary btn-sm" data-act="pj-new">+ Thêm dự án</button>`;
+  const imp = DB.settings.kpiImportAt;
+  $('#klcvSub').textContent = P.length ? `${P.length} dự án${imp ? ` · KPI hiện tại cập nhật ${dm(keyOf(new Date(imp)))} ${new Date(imp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}` : ''}` : '';
+  if(!P.length){
+    $('#klcvBody').innerHTML = `<div class="klcv-empty"><div><b style="font-size:17px">Mỗi dự án một dashboard riêng, theo màu thương hiệu của khách</b>
+      <p>Anh nhập tên dự án, chọn màu, chốt KPI mục tiêu &amp; KPI dự án, thêm task hằng tuần. Hằng tuần tải file KLCV dạng .csv lên là KPI hiện tại tự cập nhật và biểu đồ tự vẽ lại.</p></div>
+      <button class="btn btn-primary" data-act="pj-new">+ Thêm dự án đầu tiên</button></div>`;
     return;
   }
-  const allK = K.projects.flatMap(pj => pj.kpis), withPct = allK.filter(k => k.pct != null), okN = withPct.filter(k => k.pct >= 100).length;
-  const lowN = withPct.filter(k => k.pct < 80).length;
-  const total = K.projects.reduce((a, pj) => a + (pj.total || 0), 0), W = weekStats();
+  const tab = (id, label, pj) => `<button class="pj-tab pj-scope${pjTab === id ? ' on' : ''}" role="tab" aria-selected="${pjTab === id}" data-pjtab="${id}" style="${pjVars(pj || { color: '#004aef' })}"><i></i>${esc(label)}</button>`;
+  const tabs = `<div class="pj-tabs" role="tablist">${tab('all', 'Tổng quan')}${P.map(p => tab(p.id, p.name, p)).join('')}</div>`;
+  const pj = P.find(p => p.id === pjTab);
+  $('#klcvBody').innerHTML = tabs + (pj ? dashHTML(pj) : overviewHTML(P));
+  const cr = $('#copyReport'); if(cr) cr.onclick = () => copyText(reportText(), '✓ Đã copy báo cáo — dán vào Zalo / email gửi sếp');
+}
+function overviewHTML(P){
+  const W = weekStats(), sums = P.map(kpiSummary);
+  const okN = sums.reduce((a, s) => a + s.ok, 0), allN = sums.reduce((a, s) => a + s.n, 0), total = P.reduce((a, pj) => a + projWeek(pj), 0);
+  const lowN = P.reduce((a, pj) => a + kpiSummary(pj).list.filter(x => x.p < 80).length, 0);
   const tiles = `<div class="tiles">
-    <div class="tile"><small>Dự án</small><b>${K.projects.length}</b><span>${fmtInt(K.projects.reduce((a, pj) => a + pj.tasks.length, 0))} đầu việc lặp hằng tuần</span></div>
-    <div class="tile"><small>KPI đạt</small><b style="color:var(--ok)">${okN}/${withPct.length}</b><span>${lowN ? `<b style="display:inline;font-size:13px;color:var(--red)">${lowN} KPI dưới 80%</b>` : 'không KPI nào dưới 80%'}</span></div>
-    <div class="tile"><small>Khối lượng / tuần</small><b>${fmtMin(total)}</b><span>${fmtInt(total)} phút theo file</span></div>
-    <div class="tile"><small>Task tuần này</small><b>${W.done}/${W.plan}</b><span>đã tick xong · ${dm(W.a)} – ${dm(W.b)}</span></div>
-  </div>`;
-  const today = (new Date().getDay() + 6) % 7;
-  const cards = K.projects.map(pj => {
-    const ks = pj.kpis.filter(k => k.pct != null), ok = ks.filter(k => k.pct >= 100).length;
-    const st = !ks.length ? 'na' : ok === ks.length ? 'ok' : ks.some(k => k.pct < 80) ? 'low' : 'mid';
-    const w = W.by[pj.name];
-    return `<article class="pj">
-      <header><h3>${esc(pj.name)}</h3><span class="pill ${st}">${ks.length ? `${ok}/${ks.length} KPI đạt` : 'Chưa có số KPI'}</span></header>
-      <div class="pj-meta">⏱ ${pj.total ? `${fmtInt(pj.total)} phút/tuần · ≈ ${fmtMin(pj.total)}` : 'chưa ghi thời gian'} · ${pj.tasks.length} đầu việc${w ? ` · tuần này xong ${w.done}/${w.plan}` : ''}</div>
-      ${pj.kpis.length ? `<ul class="kpis">${pj.kpis.map(k => { const s = kst(k.pct); return `<li>
-        <div class="k-top"><span class="k-goal">${esc(k.goal)}</span><b class="k-pct ${s}" title="${KST_LABEL[s]}${k.approx ? ' · tự tính = hiện tại ÷ mục tiêu' : ''}">${k.pct == null ? '—' : (k.approx ? '≈ ' : '') + (Math.round(k.pct * 10) / 10).toString().replace('.', ',') + '%'}</b></div>
-        <div class="k-bar" role="img" aria-label="${esc(k.goal)}: ${KST_LABEL[s]}"><i style="width:${Math.min(k.pct || 0, 100)}%;background:var(--${s === 'ok' ? 'ok' : s === 'mid' ? 'amber' : s === 'low' ? 'red' : 'line'})"></i></div>
-        <div class="k-sub">Hiện tại <b>${esc(k.cur || '—')}</b> · Mục tiêu đợt ${esc(k.tgt || '—')}${k.pkpi && k.pkpi !== k.tgt ? ` · KPI dự án ${esc(k.pkpi)}` : ''}</div></li>`; }).join('')}</ul>` : ''}
-      ${pj.tasks.length ? `<details><summary>Task hằng tuần (${pj.tasks.length})</summary><div class="tbl-wrap"><table class="pj-tasks">
-        <thead><tr><th>Task</th><th style="text-align:right">SL/tuần</th><th style="text-align:right">Phút</th><th>Ngày làm</th></tr></thead>
-        <tbody>${pj.tasks.map(t => `<tr><td>${esc(t.name)}</td><td class="n">${t.qty ?? '—'}</td><td class="n">${t.week != null ? fmtInt(t.week) : (t.min ?? '—')}</td>
-          <td><span class="dd">${t.days.map((on, i) => `<span class="${on ? 'on' : ''}${i === today ? ' today' : ''}" title="${WD_NAME[i === 6 ? 1 : i + 2]}">${i === 6 ? 1 : i + 2}</span>`).join('')}</span></td></tr>`).join('')}</tbody>
-      </table></div></details>` : ''}
-    </article>`;
-  }).join('');
-  const maxW = Math.max(1, ...K.projects.map(pj => pj.total || 0));
-  const wl = `<div class="box"><h3>⏱ Khối lượng việc mỗi tuần</h3><div class="wl">${[...K.projects].sort((a, b) => (b.total || 0) - (a.total || 0)).map(pj => {
-      const pc = (pj.total || 0) / maxW * 100;
-      return `<span class="nm" title="${esc(pj.name)}">${esc(pj.name)}</span><div class="tr" title="${esc(pj.name)}: ${fmtInt(pj.total || 0)} phút/tuần"><i style="width:${pc}%"></i><em class="${pc > 45 ? 'in' : ''}" style="${pc > 45 ? '' : `left:calc(${pc}% + 8px)`}">${pj.total ? `${fmtInt(pj.total)} phút · ${fmtMin(pj.total)}` : 'chưa ghi thời gian'}</em></div>`;
+    <div class="tile"><small>Dự án</small><b>${P.length}</b><span>${fmtInt(P.reduce((a, pj) => a + (pj.tasks || []).length, 0))} đầu việc lặp hằng tuần</span></div>
+    <div class="tile"><small>KPI đạt</small><b style="color:var(--ok)">${okN}/${allN}</b><span>${lowN ? `<b style="display:inline;font-size:13px;color:var(--red)">${lowN} KPI dưới 80%</b>` : 'không KPI nào dưới 80%'}</span></div>
+    <div class="tile"><small>Khối lượng / tuần</small><b>${fmtMin(total)}</b><span>${fmtInt(total)} phút</span></div>
+    <div class="tile"><small>Task tuần này</small><b>${W.done}/${W.plan}</b><span>đã tick xong · ${dm(W.a)} – ${dm(W.b)}</span></div></div>`;
+  const minis = P.map(pj => { const s = kpiSummary(pj), w = W.by[pj.id];
+    return `<button class="pj-mini pj-scope" data-pjtab="${pj.id}" style="${pjVars(pj)}"><b>${esc(pj.name)}</b>
+      <span class="m"><span class="pill ${s.st}">${s.n ? `${KST_ICON[s.st]} ${s.ok}/${s.n} KPI đạt` : 'Chưa có số KPI'}</span>${projWeek(pj) ? `⏱ ${fmtMin(projWeek(pj))}/tuần` : ''}${w ? ` · task ${w.done}/${w.plan}` : ''}</span>
+      ${s.n ? `<span class="segs" aria-hidden="true">${s.list.map(x => `<i class="${kst(x.p)}"></i>`).join('')}</span>` : ''}</button>`; }).join('');
+  const maxW = Math.max(1, ...P.map(projWeek));
+  const wl = `<div class="box"><h3>⏱ Khối lượng việc mỗi tuần</h3><div class="wl">${[...P].sort((a, b) => projWeek(b) - projWeek(a)).map(pj => {
+      const v = projWeek(pj), pc = v / maxW * 100;
+      return `<span class="nm" title="${esc(pj.name)}">${esc(pj.name)}</span><div class="tr pj-scope" style="${pjVars(pj)}" title="${esc(pj.name)}: ${fmtInt(v)} phút/tuần"><i style="width:${pc}%;background:var(--pcx)"></i><em style="${pc > 45 ? 'color:var(--pc-on)' : `left:calc(${pc}% + 8px)`}">${v ? `${fmtInt(v)} phút · ${fmtMin(v)}` : 'chưa có task'}</em></div>`;
     }).join('')}</div></div>`;
   const rep = `<div class="box"><h3>📋 Báo cáo tuần ${dm(W.a)} – ${dm(W.b)}<button class="btn btn-primary btn-sm" id="copyReport">Copy báo cáo gửi sếp</button></h3>
-    <div class="rep-list">${K.projects.map(pj => { const w = W.by[pj.name] || { plan: 0, done: 0 }, pc = w.plan ? w.done / w.plan * 100 : 0;
-      return `<div class="rep-row"><span class="nm">${esc(pj.name)}</span><span class="mini" aria-hidden="true"><i style="width:${pc}%"></i></span><span class="n">${w.plan ? `${w.done}/${w.plan} task` : 'chưa có task tuần'}</span></div>`; }).join('')}</div>
-    <p class="hint" style="margin:12px 0 0">Tick “Done” các task KLCV ở mục “Hôm nay” trong tuần — cuối tuần số liệu tự đếm sẵn ở đây.</p></div>`;
-  $('#klcvBody').innerHTML = `${klcvError ? `<div class="klcv-err">⚠ ${esc(klcvError)} (đang hiển thị dữ liệu lần tải trước)</div>` : ''}${tiles}
-    <div class="klcv-grid"><div class="pj-list">${cards}</div><div class="klcv-side">${wl}${rep}</div></div>`;
-  $('#copyReport').onclick = () => copyText(reportText(), '✓ Đã copy báo cáo — dán vào Zalo / email gửi sếp');
+    <div class="rep-list">${P.map(pj => { const w = W.by[pj.id] || { plan: 0, done: 0 }, pc = w.plan ? w.done / w.plan * 100 : 0;
+      return `<div class="rep-row pj-scope" style="${pjVars(pj)}"><span class="nm">${esc(pj.name)}</span><span class="mini" aria-hidden="true"><i style="width:${pc}%;background:var(--pcx)"></i></span><span class="n">${w.plan ? `${w.done}/${w.plan} task` : 'chưa có task tuần'}</span></div>`; }).join('')}</div>
+    <p class="hint" style="margin:12px 0 0">Tick “Done” các task dự án ở mục “Hôm nay” trong tuần — cuối tuần số liệu tự đếm sẵn ở đây.</p></div>`;
+  return `${tiles}<div class="ov-grid"><div class="pj-minis">${minis}</div><div class="klcv-side">${wl}${rep}</div></div>`;
 }
+function dashHTML(pj){
+  const s = kpiSummary(pj), W = weekStats(), w = W.by[pj.id], wk = projWeek(pj);
+  const lastAt = Math.max(0, ...(pj.kpis || []).map(k => k.currentAt || 0));
+  const hero = `<div class="pj-hero"><div><small>Dự án</small><h3>${esc(pj.name)}</h3></div>
+    <div class="hero-stats">
+      <div class="hs"><small>KPI đạt</small><b>${s.ok}/${s.n}</b></div>
+      <div class="hs"><small>Khối lượng/tuần</small><b>${wk ? fmtMin(wk) : '—'}</b></div>
+      <div class="hs"><small>Task tuần này</small><b>${w ? `${w.done}/${w.plan}` : '—'}</b></div>
+      <div class="hs"><small>KPI cập nhật</small><b>${lastAt ? dm(keyOf(new Date(lastAt))) : '—'}</b></div>
+    </div>
+    <button class="btn btn-sm" data-pjedit="${pj.id}">✎ Sửa dự án</button></div>`;
+  const MAX = 150, pos = v => Math.min(Math.max(v, 0), MAX) / MAX * 100;
+  const rows = (pj.kpis || []).map(k => {
+    const p = pctOf(k), st = kst(p), pk = ratio(k.projectKpi, k.target);
+    return `<div class="bl-lab" title="${esc(k.goal)}">${esc(k.goal)}</div>
+      <div class="bl-track" title="${esc(k.goal)} — hiện tại ${esc(k.current || '—')} / mục tiêu đợt ${esc(k.target || '—')}${k.projectKpi ? ` / KPI dự án ${esc(k.projectKpi)}` : ''}">
+        ${p != null ? `<i class="bl-bar s-${st}" style="width:${pos(p)}%"></i>` : ''}<span class="bl-100" style="left:${pos(100)}%"></span>
+        ${pk != null && Math.abs(pk - 100) > 0.5 ? `<b class="bl-pk" style="left:${pos(pk)}%"></b>` : ''}</div>
+      <div class="bl-val ${st}">${p == null ? 'Chưa có số' : `${KST_ICON[st]} ${fmtPct(p)}${p > MAX ? ' ▸' : ''}`}</div>`;
+  }).join('');
+  const chart = (pj.kpis || []).length ? `<div class="box box-brand"><h3>📊 Tiến độ từng KPI so với mục tiêu</h3>
+      <div class="bl">${rows}<span class="bl-sp"></span><div class="bl-axis">${[0, 50, 100, 150].map(v => `<span style="left:${pos(v)}%">${v}%</span>`).join('')}</div><span class="bl-sp"></span></div>
+      <div class="bl-legend"><span><i style="width:14px;height:10px;border-radius:3px;background:var(--pcx)"></i>Đã đạt</span><span><i style="width:14px;height:10px;border-radius:3px;background:color-mix(in srgb,var(--pcx) 50%,var(--grid))"></i>Chưa đạt</span>
+        <span><i style="height:14px;border-left:2px dashed var(--ink)"></i>100% = KPI mục tiêu đợt</span><span><i style="width:9px;height:9px;border:2px solid var(--ink);transform:rotate(45deg)"></i>Mốc KPI dự án</span><span>Thanh tính theo % so với mục tiêu đợt (tối đa 150%)</span></div></div>`
+    : `<div class="box box-brand"><div class="klcv-empty" style="border:0;padding:0"><div><b>Dự án chưa có KPI</b><p>Bấm “Sửa dự án” để chốt KPI mục tiêu &amp; KPI dự án.</p></div><button class="btn btn-primary" data-pjedit="${pj.id}">+ Thêm KPI</button></div></div>`;
+  const table = (pj.kpis || []).length ? `<div class="box"><h3>📋 Bảng KPI</h3><div class="tbl-wrap"><table class="kpi-tbl">
+      <thead><tr><th>Mục tiêu</th><th>KPI mục tiêu (đợt)</th><th>KPI dự án</th><th>KPI hiện tại</th><th>% so với đợt</th><th>% so với dự án</th><th>Trạng thái</th></tr></thead>
+      <tbody>${pj.kpis.map(k => { const p = pctOf(k), pp = pctProj(k), st = kst(p);
+        return `<tr><td>${esc(k.goal)}</td><td class="n">${esc(k.target || '—')}</td><td class="n">${esc(k.projectKpi || '—')}</td>
+          <td class="n"><b>${esc(k.current || '—')}</b>${k.currentAt ? `<br><small class="hint">${dm(keyOf(new Date(k.currentAt)))}${k.currentSrc === 'csv' ? ' · từ file' : ''}</small>` : ''}</td>
+          <td class="n">${p != null ? fmtPct(p) : '—'}</td><td class="n">${pp != null ? fmtPct(pp) : '—'}</td>
+          <td><span class="st ${st}">${KST_ICON[st]} ${KST_LABEL[st]}</span></td></tr>`; }).join('')}</tbody></table></div></div>` : '';
+  const today = (new Date().getDay() + 6) % 7;
+  const tasks = `<div class="box"><h3>🗓 Task hằng tuần${w ? ` · tuần này xong ${w.done}/${w.plan}` : ''}</h3>${(pj.tasks || []).length ? `<div class="tbl-wrap"><table class="pj-tasks">
+      <thead><tr><th>Task</th><th style="text-align:right">SL/tuần</th><th style="text-align:right">Phút/lần</th><th style="text-align:right">Phút/tuần</th><th>Ngày làm</th></tr></thead>
+      <tbody>${pj.tasks.map(t => `<tr><td>${esc(t.name)}</td><td class="n">${t.qty || '—'}</td><td class="n">${t.min || '—'}</td><td class="n">${(+t.qty || 0) * (+t.min || 0) ? fmtInt(t.qty * t.min) : '—'}</td><td>${dayChips(t.days, today)}</td></tr>`).join('')}</tbody></table></div>`
+      : '<p class="hint" style="margin:0">Chưa có task — bấm “Sửa dự án” để thêm (tick ngày làm là task tự vào mục “Hôm nay”).</p>'}</div>`;
+  return `<div class="pj-scope" style="${pjVars(pj)}">${hero}<div class="dash-grid">${chart}${table}${tasks}</div></div>`;
+}
+$('#klcvBody').addEventListener('click', e => {
+  const t = e.target.closest('[data-pjtab],[data-pjedit]'); if(!t) return;
+  if(t.dataset.pjtab){ pjTab = t.dataset.pjtab; DB.settings.pjTab = pjTab; save(); renderKLCV(); }
+  else openPjModal(t.dataset.pjedit);
+});
+
+/* ---------- Hộp thêm / sửa dự án ---------- */
+let pjEditing = null;
+const DAYS_LBL = [2, 3, 4, 5, 6, 7, 1];
+function kpiRow(k){
+  k = k || {};
+  return `<div class="kr" data-id="${k.id || uid()}">
+    <input class="field" data-f="goal" aria-label="Mục tiêu" placeholder="Mục tiêu (vd: Top 3 bộ tổng)" value="${esc(k.goal || '')}">
+    <input class="field" data-f="target" aria-label="KPI mục tiêu đợt" placeholder="Mục tiêu đợt" value="${esc(k.target || '')}">
+    <input class="field" data-f="projectKpi" aria-label="KPI dự án" placeholder="KPI dự án" value="${esc(k.projectKpi || '')}">
+    <input class="field" data-f="current" aria-label="KPI hiện tại" placeholder="Hiện tại" value="${esc(k.current || '')}">
+    <button class="edit-btn" type="button" data-del aria-label="Xoá KPI này">✕</button></div>`;
+}
+function taskRow(t){
+  t = t || { days: [false, false, false, false, false, false, false] };
+  const rid = t.id || uid();
+  return `<div class="tk" data-id="${rid}">
+    <input class="field" data-f="name" aria-label="Tên task" placeholder="Task (vd: Check top)" value="${esc(t.name || '')}">
+    <input class="field" data-f="qty" type="number" min="0" step="1" aria-label="Số lượng mỗi tuần" placeholder="SL/tuần" value="${t.qty ?? ''}">
+    <input class="field" data-f="min" type="number" min="0" step="1" aria-label="Số phút mỗi lần" placeholder="Phút/lần" value="${t.min ?? ''}">
+    <span class="dpick">${DAYS_LBL.map((n, i) => `<label title="${WD_NAME[n]}"><input type="checkbox" data-day="${i}"${t.days && t.days[i] ? ' checked' : ''}><span>${n}</span></label>`).join('')}</span>
+    <button class="edit-btn" type="button" data-del aria-label="Xoá task này">✕</button></div>`;
+}
+function openPjModal(id){
+  const pj = (DB.projects || []).find(p => p.id === id) || null;
+  pjEditing = pj;
+  $('#pjmTitle').textContent = pj ? `Sửa dự án ${pj.name}` : 'Thêm dự án';
+  $('#pjmName').value = pj ? pj.name : '';
+  $('#pjmColor').value = pj && pj.color ? pj.color : suggestColor('');
+  $('#pjmColor').dataset.touched = pj ? '1' : '';
+  $('#pjmKpis').innerHTML = (pj && pj.kpis.length ? pj.kpis : [null, null, null]).map(kpiRow).join('');
+  $('#pjmTasks').innerHTML = (pj && pj.tasks.length ? pj.tasks : [null]).map(taskRow).join('');
+  $('#pjmDelete').hidden = !pj;
+  $('#pjmEye').hidden = !('EyeDropper' in window);
+  $('#pjmSwatches').innerHTML = PJ_COLORS.map(c => `<button type="button" data-color="${c}" style="background:${c}" aria-label="Chọn màu ${c}" title="${c}"></button>`).join('');
+  $('#menuPanel').classList.remove('open');
+  $('#pjModal').classList.add('open'); setTimeout(() => $('#pjmName').focus(), 50);
+}
+$('#pjmName').addEventListener('input', () => { if(!$('#pjmColor').dataset.touched) $('#pjmColor').value = suggestColor($('#pjmName').value); });
+$('#pjmColor').addEventListener('input', () => { $('#pjmColor').dataset.touched = '1'; });
+$('#pjmSwatches').addEventListener('click', e => { const b = e.target.closest('[data-color]'); if(b){ $('#pjmColor').value = b.dataset.color.toLowerCase(); $('#pjmColor').dataset.touched = '1'; } });
+$('#pjmEye').onclick = async () => { try{ const r = await new EyeDropper().open(); $('#pjmColor').value = r.sRGBHex.length === 7 ? r.sRGBHex : '#004aef'; $('#pjmColor').dataset.touched = '1'; }catch(e){} };
+$('#pjmAddKpi').onclick = () => { $('#pjmKpis').insertAdjacentHTML('beforeend', kpiRow()); $('#pjmKpis').lastElementChild.querySelector('input').focus(); };
+$('#pjmAddTask').onclick = () => { $('#pjmTasks').insertAdjacentHTML('beforeend', taskRow()); $('#pjmTasks').lastElementChild.querySelector('input').focus(); };
+$('#pjModal').addEventListener('click', e => { const d = e.target.closest('[data-del]'); if(d) d.closest('.kr,.tk').remove(); });
+$('#pjmCancel').onclick = () => $('#pjModal').classList.remove('open');
+$('#pjmSave').onclick = () => {
+  const name = $('#pjmName').value.trim();
+  if(!name){ toast('Nhập tên dự án trước nhé.', 'err'); $('#pjmName').focus(); return; }
+  const old = pjEditing ? Object.fromEntries(pjEditing.kpis.map(k => [k.id, k])) : {};
+  const kpis = [...$('#pjmKpis').querySelectorAll('.kr')].map(r => {
+    const f = n => r.querySelector(`[data-f=${n}]`).value.trim(), prev = old[r.dataset.id] || {};
+    const k = { ...prev, id: r.dataset.id, goal: f('goal'), target: f('target'), projectKpi: f('projectKpi'), current: f('current') };
+    if(k.current !== (prev.current || '')){ k.currentAt = k.current ? Date.now() : null; k.currentSrc = 'tay'; }
+    return k;
+  }).filter(k => k.goal || k.target || k.current);
+  const tasks = [...$('#pjmTasks').querySelectorAll('.tk')].map(r => ({
+    id: r.dataset.id, name: r.querySelector('[data-f=name]').value.trim(),
+    qty: +r.querySelector('[data-f=qty]').value || null, min: +r.querySelector('[data-f=min]').value || null,
+    days: [...r.querySelectorAll('[data-day]')].map(c => c.checked),
+  })).filter(t => t.name);
+  DB.projects = DB.projects || [];
+  if(pjEditing) Object.assign(pjEditing, { name, color: $('#pjmColor').value, kpis, tasks });
+  else { const pj = { id: uid(), name, color: $('#pjmColor').value, kpis, tasks, createdAt: Date.now() }; DB.projects.push(pj); pjTab = pj.id; DB.settings.pjTab = pj.id; }
+  $('#pjModal').classList.remove('open'); materializeKLCV(); render();
+  toast(`✓ Đã lưu dự án ${name}`, 'ok');
+};
+$('#pjmDelete').onclick = async () => {
+  if(!pjEditing) return;
+  if(!(await askConfirm(`Xoá dự án “${pjEditing.name}”? KPI và task tuần chưa làm của dự án sẽ bị xoá.`, 'Xoá dự án'))) return;
+  const id = pjEditing.id;
+  DB.projects = DB.projects.filter(p => p.id !== id);
+  DB.tasks = DB.tasks.filter(t => !(t.projectId === id && !t.doneAt));
+  pjTab = 'all'; DB.settings.pjTab = 'all';
+  $('#pjModal').classList.remove('open'); save(); render(); toast('Đã xoá dự án', 'ok');
+};
+
+/* ---------- Cập nhật KPI hiện tại từ file .csv (tải từ Google Sheets) ---------- */
+function parseKLCV(rows){
+  const norm = c => strip(String(c || '').toLowerCase()).replace(/\s+/g, ' ').trim();
+  const H = rows.findIndex(r => r.some(c => norm(c) === 'du an') && r.some(c => norm(c).startsWith('kpi hien tai')));
+  if(H < 0) throw new Error('Không thấy dòng tiêu đề — file cần có cột “Dự án” và “KPI hiện tại”.');
+  const h = rows[H].map(norm), col = f => h.findIndex(f);
+  const C = { proj: col(x => x === 'du an'), goal: col(x => x.startsWith('muc tieu')), cur: col(x => x.startsWith('kpi hien tai')) };
+  const g = (r, i) => i >= 0 && r[i] != null ? String(r[i]).trim() : '';
+  const out = []; let cur = null;
+  for(let i = H + 1; i < rows.length; i++){
+    const r = rows[i], name = g(r, C.proj), goal = g(r, C.goal);
+    if(!r.some(c => String(c || '').trim())){ cur = null; continue; }
+    if(name && (!cur || cur.name !== name)){ cur = { name, kpis: [] }; out.push(cur); }
+    if(cur && goal) cur.kpis.push({ goal, cur: g(r, C.cur) });
+  }
+  return out;
+}
+function findPj(name){
+  const n = normName(name), P = DB.projects || [];
+  return P.find(p => normName(p.name) === n) || P.find(p => { const m = normName(p.name); return m.length >= 3 && (n.startsWith(m) || m.startsWith(n)); }) || null;
+}
+function findKpi(pj, goal, used){
+  const n = normName(goal);
+  const cands = pj.kpis.filter(k => { if(used && used.has(k)) return false; const m = normName(k.goal); return m.length >= 4 && n.length >= 4 && (m.includes(n) || n.includes(m)); });
+  // gần đúng: chọn tên có độ dài sát nhất, và phải chiếm ≥ 60% tên dài hơn để tránh khớp nhầm
+  cands.sort((a, b) => Math.abs(normName(a.goal).length - n.length) - Math.abs(normName(b.goal).length - n.length));
+  const k = cands[0]; if(!k) return null;
+  const m = normName(k.goal); return Math.min(m.length, n.length) / Math.max(m.length, n.length) >= 0.6 ? k : null;
+}
+$('#kpiFile').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value = ''; if(!f) return;
+  let sheet;
+  try{ sheet = parseKLCV(parseCSV(await f.text())); }
+  catch(err){ toast(err.message || 'Không đọc được file .csv này.', 'err'); return; }
+  const today = todayKey(); let upd = 0; const miss = [], per = [];
+  sheet.forEach(sp => {
+    const pj = findPj(sp.name);
+    if(!pj){ miss.push(`• Dự án “${sp.name}” — chưa có trên trang`); return; }
+    let c = 0;
+    // Khớp tên chính xác trước, rồi mới khớp gần đúng; mỗi KPI trên trang chỉ nhận 1 số
+    const used = new Set(), pairs = new Map(), rows = sp.kpis.filter(sk => sk.cur);
+    rows.forEach(sk => { const k = pj.kpis.find(k => !used.has(k) && normName(k.goal) === normName(sk.goal)); if(k){ used.add(k); pairs.set(sk, k); } });
+    rows.forEach(sk => { if(pairs.has(sk)) return; const k = findKpi(pj, sk.goal, used); if(k){ used.add(k); pairs.set(sk, k); } });
+    rows.forEach(sk => {
+      const k = pairs.get(sk);
+      if(!k){ miss.push(`• ${pj.name}: “${sk.goal}” — chưa có KPI này trên trang`); return; }
+      k.current = sk.cur; k.currentAt = Date.now(); k.currentSrc = 'csv';
+      k.hist = (k.hist || []).filter(x => x.d !== today).concat({ d: today, v: sk.cur }).slice(-26);
+      c++; upd++;
+    });
+    if(c) per.push(`• ${pj.name}: ${c} KPI`);
+  });
+  DB.settings.kpiImportAt = Date.now(); save(); render();
+  askConfirm(`Đã cập nhật KPI hiện tại cho ${upd} KPI.\n${per.join('\n')}${miss.length ? `\n\nChưa khớp (${miss.length}) — KPI mục tiêu anh chưa nhập thì trang bỏ qua:\n${miss.slice(0, 25).join('\n')}${miss.length > 25 ? '\n…' : ''}` : ''}`, 'Xong', { title: upd ? '✓ Đã cập nhật KPI hiện tại' : 'Chưa khớp KPI nào', info: true });
+});
 
 /* ---------- Biểu đồ hoàn thành (7 ngày qua) ---------- */
 const SERIES = [
@@ -1391,7 +1568,7 @@ function chip(t, dayIndex){
     <span class="m">${t.time ? '🕘 ' + t.time : 'Cả ngày'}${t.repeat ? ' · 🔁' : ''}${t.links && t.links.length ? ' · ' + ICON_LINK + ' ' + t.links.length : ''}</span></button>`;
 }
 function tagsOf(t){
-  return (t.project ? `<span class="tag proj">📁 ${esc(t.project)}</span>` : '') + (t.urgent ? '<span class="tag flag">🚩 Gấp</span>' : '') + (t.repeat ? `<span class="tag rep">🔁 ${repeatLabel(t)}</span>` : '');
+  return (t.project ? (() => { const pj = (DB.projects || []).find(p => p.id === t.projectId); return `<span class="tag proj pj-scope" style="${pjVars(pj)}${pj ? ';background:var(--pcx);color:var(--pc-on)' : ''}">📁 ${esc(t.project)}</span>`; })() : '') + (t.urgent ? '<span class="tag flag">🚩 Gấp</span>' : '') + (t.repeat ? `<span class="tag rep">🔁 ${repeatLabel(t)}</span>` : '');
 }
 const flagTitle = t => (t.urgent ? '🚩 ' : '') + esc(t.title);
 
@@ -1625,9 +1802,8 @@ function menuAction(act){
   $('#menuPanel').classList.remove('open');
   if(act === 'notify') askNotify();
   if(act === 'welcome') showWelcome(true);
-  if(act === 'klcv-connect') openKlcvModal();
-  if(act === 'klcv-sync') syncKLCV(true);
-  if(act === 'klcv-share') shareKLCV();
+  if(act === 'pj-new') openPjModal(null);
+  if(act === 'kpi-import') $('#kpiFile').click();
   if(act === 'test-notify'){ const ok = desktopNote('⏰ Thử thông báo', 'Nếu bạn thấy dòng này ở góc màn hình là đã chạy.', 'test'); chime(); toast(ok ? 'Đã gửi thông báo thử ra góc màn hình' : 'Thông báo góc màn hình chưa bật — chỉ có chuông + âm thanh trong trang.', ok ? 'ok' : 'alarm'); }
   if(act === 'export') exportData();
   if(act === 'import') $('#importFile').click();
@@ -1648,8 +1824,10 @@ async function exportData(){
   setTimeout(() => URL.revokeObjectURL(a.href), 2000); toast('Đã tải file sao lưu về thư mục Downloads ✓', 'ok');
 }
 // Hộp xác nhận ngay trong trang (thay cho confirm() của trình duyệt)
-function askConfirm(msg, okLabel){
+function askConfirm(msg, okLabel, opt){
+  opt = opt || {};
   return new Promise(res => {
+    $('#cfTitle').textContent = opt.title || 'Chắc chắn chứ?'; $('#cfCancel').hidden = !!opt.info;
     $('#cfMsg').textContent = msg; $('#cfOk').textContent = okLabel || 'Đồng ý';
     $('#confirmBox').classList.add('open');
     const done = v => { $('#confirmBox').classList.remove('open'); $('#cfOk').onclick = $('#cfCancel').onclick = null; res(v); };
@@ -1663,7 +1841,7 @@ $('#importFile').addEventListener('change', async e => {
   try{ d = JSON.parse(await f.text()); if(!d || !Array.isArray(d.tasks)) throw 0; }
   catch(err){ toast('File này không phải file sao lưu của Thư ký.', 'err'); return; }
   if(!(await askConfirm(`Khôi phục ${d.tasks.length} việc từ file sao lưu? Danh sách việc hiện tại sẽ được thay bằng file này.`, 'Khôi phục'))) return;
-  DB = { tasks: d.tasks, settings: { ...(d.settings || {}), lastWelcome: todayKey() } }; save(); render(); toast('Đã khôi phục dữ liệu ✓', 'ok');
+  DB = { tasks: d.tasks, projects: d.projects || [], settings: { ...(d.settings || {}), lastWelcome: todayKey() } }; save(); render(); toast('Đã khôi phục dữ liệu ✓', 'ok');
 });
 function addSamples(quiet){
   const t0 = new Date(), k = n => keyOf(addDays(t0, n)), now = Date.now();
@@ -1725,16 +1903,11 @@ function dailyDigest(){
 let firstVisit = true;
 try{ firstVisit = localStorage.getItem(KEY) === null; }catch(e){}
 if(firstVisit && !DB.tasks.length) addSamples(true);
-// Link sếp được gửi: …#klcv=<link file> → tự kết nối
-if(location.hash.startsWith('#klcv=')){
-  try{ DB.settings.klcvUrl = decodeURIComponent(location.hash.slice(6)); DB.settings.klcvDaily = false; save(); }catch(e){}
-  history.replaceState(null, '', location.pathname + location.search);
-  setTimeout(() => toast('✓ Đã kết nối bảng KPI từ link được chia sẻ', 'ok'), 800);
-}
+// Bỏ kiểu kết nối Sheet công khai (bản trước)
+delete DB.klcv; ['klcvUrl', 'klcvSheetUrl', 'klcvDaily'].forEach(k => delete DB.settings[k]);
+DB.projects = DB.projects || [];
 materializeKLCV();
 render(); syncAuto(); renderPreview(); autoGrow();
-if(DB.settings.klcvUrl) syncKLCV(false);
-setInterval(() => { if(DB.settings.klcvUrl && !document.hidden) syncKLCV(false); }, 15 * 60e3);
 showWelcome();
 dailyDigest();
 tick();
