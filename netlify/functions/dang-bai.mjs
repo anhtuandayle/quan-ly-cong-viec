@@ -1,6 +1,7 @@
 // Bộ điều phối của ứng dụng "Đăng bài đa kênh" trên Netlify: mọi đường dẫn /api/dang-bai/...
 import { randomUUID } from "node:crypto";
-import { LoiAI, taoCongThucAI, tomTatAI } from "../dang-bai/tri-tue.mjs";
+import { LoiAI, taoBaiAI, taoCongThucAI } from "../dang-bai/tri-tue.mjs";
+import { GIOI_HAN_BAI, dongCuoi, ghepBai, taoBaiDonGian } from "../dang-bai/bai-dang.mjs";
 import { GIOI_HAN_TOM_TAT, LoiNguoiDung, chuanHoa, doDai, tomTatDonGian, trichXuat } from "../dang-bai/trich-xuat.mjs";
 import { guiAnToan } from "../dang-bai/phan-phoi.mjs";
 import { moKho } from "../dang-bai/kho.mjs";
@@ -137,14 +138,25 @@ export default async (req) => {
     }
 
     if (duong === "/trich-xuat" && pt === "POST") {
+      const batDau = Date.now();
       const bai = await trichXuat(String(dl.url || ""));
-      let nguon = "Tự động (trích câu chính)", canhBao = "", tomTat = null;
+      const link = bai.link_goc;
+      let nguon = "Tự động (trích câu chính)", canhBao = "", kqAI = null;
       if (caiDat.chia_khoa_claude) {
-        try { tomTat = await tomTatAI(caiDat.chia_khoa_claude, bai.tieu_de, bai.noi_dung || bai.mo_ta); nguon = "AI (Claude)"; }
-        catch (e) { canhBao = `AI chưa tóm tắt được (${e.message}), đã dùng cách tự động.`; }
+        try {
+          kqAI = await taoBaiAI(caiDat.chia_khoa_claude, bai.tieu_de, bai.noi_dung || bai.mo_ta, link, batDau + 55_000);
+          nguon = "AI (Claude)";
+        } catch (e) { canhBao = `AI chưa viết được (${e.message}), đã dùng cách tự động.`; }
       }
-      tomTat = tomTat || tomTatDonGian(bai.tieu_de, bai.mo_ta, bai.noi_dung);
-      return traJson({ ...bai, tom_tat: tomTat, nguon_tom_tat: nguon, canh_bao: canhBao, so_chu: bai.noi_dung.split(/\s+/).filter(Boolean).length });
+      const tuDong = kqAI ? null : taoBaiDonGian(bai.tieu_de, bai.mo_ta, bai.noi_dung, link);
+      return traJson({
+        ...bai,
+        tom_tat: kqAI ? kqAI.tom_tat : tomTatDonGian(bai.tieu_de, bai.mo_ta, bai.noi_dung),
+        bai_ngan: kqAI ? kqAI.ngan : tuDong.ngan,
+        bai_dai: kqAI ? kqAI.dai : tuDong.dai,
+        dong_cuoi: dongCuoi(link), gioi_han_bai: GIOI_HAN_BAI,
+        nguon_tom_tat: nguon, canh_bao: canhBao, so_chu: bai.noi_dung.split(/\s+/).filter(Boolean).length,
+      });
     }
 
     if (duong === "/bieu-mau" && pt === "POST") {
@@ -197,6 +209,13 @@ export default async (req) => {
       if (!bai.tom_tat) return loi("Bài chưa có đoạn tóm tắt.");
       if (doDai(bai.tom_tat) > GIOI_HAN_TOM_TAT) return loi(`Đoạn tóm tắt đang dài ${doDai(bai.tom_tat)} ký tự — phải dưới 140.`);
       if (!/^https?:\/\//.test(bai.link_goc)) return loi("Thiếu đường dẫn bài gốc.");
+      const loai = GIOI_HAN_BAI[dl.loai_bai] ? dl.loai_bai : "ngan";
+      const than = String(dl.than_bai || "").replace(/\r/g, "").normalize("NFC").trim();
+      if (!than) return loi("Bài đăng chưa có nội dung.");
+      bai.noi_dung = ghepBai(than, bai.link_goc);
+      if (doDai(bai.noi_dung) > GIOI_HAN_BAI[loai]) {
+        return loi(`Bài ${loai === "ngan" ? "ngắn" : "dài"} đang ${doDai(bai.noi_dung)} ký tự — tối đa ${GIOI_HAN_BAI[loai]}.`);
+      }
       const dangBat = ((await kho.doc("ket-noi")) || []).filter((kn) => kn.bat);
       if (!dangBat.length) return loi("Chưa bật nền tảng nào để đăng.");
       return traJson({ ket_qua: await Promise.all(dangBat.map((kn) => guiAnToan(kn, bai))) });

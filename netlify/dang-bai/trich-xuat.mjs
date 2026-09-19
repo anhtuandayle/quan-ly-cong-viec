@@ -73,8 +73,44 @@ export function boTenTrang(tieuDe, tenTrang, tenMien) {
   return tieuDe;
 }
 
+const TRINH_DUYET_AO = "https://r.jina.ai/"; // dịch vụ miễn phí: mở trang như trình duyệt thật rồi trả lại HTML đầy đủ
+
+// Cho các trang "rỗng" (nội dung chỉ hiện ra sau khi chạy JavaScript, vd trang làm bằng React)
+async function taiQuaTrinhDuyetAo(url) {
+  const r = await fetch(TRINH_DUYET_AO + url, {
+    headers: { "X-Return-Format": "html", "User-Agent": "DangBaiDaKenh/1.0" },
+    signal: AbortSignal.timeout(25000),
+  });
+  if (!r.ok) throw new Error(`trình duyệt ảo báo lỗi ${r.status}`);
+  return r.text();
+}
+
+// Đọc bài: tải bình thường trước; nếu trang gần như rỗng thì mở lại bằng trình duyệt ảo.
 export async function trichXuat(url) {
-  const { html, urlCuoi } = await taiTrang(url.trim());
+  url = (url || "").trim();
+  if (!/^https?:\/\//i.test(url)) throw new LoiNguoiDung("Đường dẫn phải bắt đầu bằng http:// hoặc https://");
+  let kq = null, loiTai = null, urlCuoi = url;
+  try {
+    const t = await taiTrang(url);
+    urlCuoi = t.urlCuoi;
+    kq = phanTich(t.html, url, urlCuoi);
+  } catch (e) {
+    if (!(e instanceof LoiNguoiDung)) throw e;
+    loiTai = e;
+  }
+  if (kq && kq.noi_dung.length >= 400) return { ...kq, cach_doc: "Đọc trực tiếp" };
+  try {
+    const kqAo = phanTich(await taiQuaTrinhDuyetAo(url), url, urlCuoi);
+    if (!kq || kqAo.noi_dung.length > kq.noi_dung.length) {
+      return { ...kqAo, cach_doc: "Đọc bằng trình duyệt ảo (trang tải nội dung bằng JavaScript)" };
+    }
+  } catch {}
+  if (kq) return { ...kq, cach_doc: "Đọc trực tiếp (trang có ít chữ)" };
+  if (loiTai && loiTai.message.includes("từ chối")) throw loiTai;
+  throw new LoiNguoiDung("Không tìm thấy tiêu đề hay nội dung, kể cả khi mở bằng trình duyệt ảo. Trang có thể cần đăng nhập.");
+}
+
+function phanTich(html, url, urlCuoi) {
   const $ = cheerio.load(html);
   const meta = {};
   $("meta").each((_, el) => {
@@ -102,7 +138,7 @@ export async function trichXuat(url) {
     const t = chuanHoa($(el).text()).replace(/\[\d+\]/g, "");
     if (t) doan.push([t, trongBai(el)]);
   });
-  const doanTrong = doan.filter(([t, o]) => o && t.length >= 25).map(([t]) => t);
+  const doanTrong = doan.filter(([t, o]) => o && t.length >= 40).map(([t]) => t);
   const tatCa = doan.filter(([t]) => t.length >= 40).map(([t]) => t);
   const tong = (a) => a.reduce((s, x) => s + x.length, 0);
   let noiDung = tong(doanTrong) >= 300 ? doanTrong : tatCa;
@@ -121,10 +157,10 @@ export async function trichXuat(url) {
   anh = anh ? new URL(anh, urlCuoi).href : "";
 
   if (!tieuDe && !noiDung.length) {
-    throw new LoiNguoiDung("Không tìm thấy tiêu đề hay nội dung. Trang có thể tải nội dung bằng JavaScript nên máy không đọc được.");
+    throw new LoiNguoiDung("Không tìm thấy tiêu đề hay nội dung.");
   }
   return {
-    link_goc: url.trim(),
+    link_goc: url,
     ten_mien: new URL(urlCuoi).hostname.replace(/^www\./, ""),
     tieu_de: tieuDe,
     mo_ta: moTa,
@@ -153,7 +189,7 @@ export function rutGon(cau, gioiHan = GIOI_HAN_TOM_TAT) {
   return phan.replace(/[ ,;:\-–.]+$/, "") + "…";
 }
 
-const tachCau = (s) => (s || "").split(/(?<=[.!?…])\s+/).map((c) => c.trim()).filter((c) => c.length > 1);
+export const tachCau = (s) => (s || "").split(/(?<=[.!?…])\s+/).map((c) => c.trim()).filter((c) => c.length > 1);
 
 export function tomTatDonGian(tieuDe, moTa, noiDung) {
   const ungVien = [];

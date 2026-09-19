@@ -68,6 +68,14 @@
   .hang-anh img { width: 92px; height: 60px; object-fit: cover; border-radius: 8px; border: 1px solid var(--vien); background: var(--nen); }
   .link-khoa { display: flex; align-items: center; gap: 8px; background: var(--nen); border-radius: 10px; padding: 9px 12px; font-size: 13.5px; color: var(--chu-phu); word-break: break-all; }
 
+  .the-bai { border: 1.5px solid var(--vien); border-radius: 12px; padding: 12px; margin-top: 10px; transition: border-color .15s; }
+  .the-bai.chon { border-color: var(--xanh); background: #fbfcff; }
+  .dau-the-bai { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+  .chon-bai { font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+  .chon-bai span { font-weight: 400; color: var(--chu-mo); font-size: 13px; }
+  .chon-bai input { accent-color: var(--xanh); width: 16px; height: 16px; }
+  .dau-the-bai .dem { float: none; }
+  .dong-khoa { font-size: 13px; color: var(--chu-phu); background: var(--nen); border-radius: 8px; padding: 7px 10px; margin: 6px 0 8px; word-break: break-all; }
   .xem-truoc { margin-top: 20px; border-top: 1px solid var(--vien); padding-top: 18px; }
   .xem-truoc h3 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--chu-phu); }
   .bai-dang { border: 1px solid var(--vien); border-radius: 12px; overflow: hidden; max-width: 520px; background: #fff; box-shadow: 0 1px 3px rgba(16,24,40,.06); }
@@ -111,7 +119,7 @@
 
   .phan-dang { margin-top: 18px; }
   .dong-dang { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-  .nut.lon { padding: 14px 28px; font-size: 16px; background: var(--bac-ha); color: #00332a; }
+  .nut.lon { padding: 14px 28px; font-size: 16px; background: var(--bac-ha); color: #00332a; white-space: normal; max-width: 100%; }
   .nut.lon:hover { background: #05d98d; }
   .nut.lon:disabled { background: #d0d5dd; color: #667085; }
   .ly-do { font-size: 13.5px; color: var(--chu-phu); }
@@ -341,11 +349,11 @@ $("#formLink").onsubmit = async (ev) => {
   const url = $("#oLink").value.trim();
   const nut = $("#nutLay");
   nut.disabled = true;
-  hienTT($("#ttLay"), trangThai.ai ? "Đang đọc bài và nhờ AI tóm tắt…" : "Đang đọc bài…", false, true);
+  hienTT($("#ttLay"), trangThai.ai ? "Đang đọc bài và nhờ AI viết bài đăng (có thể mất 20–40 giây)…" : "Đang đọc bài (trang dạng ứng dụng có thể mất 10–20 giây)…", false, true);
   try {
     const bai = await goi("/trich-xuat", "POST", { url });
     trangThai.bai = { ...bai, anh_tai_len: null };
-    hienTT($("#ttLay"), `Đã lấy xong bài từ ${bai.ten_mien} (${bai.so_chu.toLocaleString("vi")} chữ).`);
+    hienTT($("#ttLay"), `Đã lấy xong bài từ ${bai.ten_mien} (${bai.so_chu.toLocaleString("vi")} chữ) — ${bai.cach_doc.toLowerCase()}.`);
     veVungSua();
     $("#bangKetQua").innerHTML = "";
   } catch (e) {
@@ -359,16 +367,35 @@ function anhDangDung() {
   if (b.anh_tai_len) return `data:${b.anh_tai_len.kieu};base64,${b.anh_tai_len.base64}`;
   return b.anh_url || "";
 }
+const TEN_LOAI = { ngan: "Bài ngắn", dai: "Bài dài" };
+const thanBai = (loai) => (trangThai.bai["bai_" + loai] || "").replace(/\r/g, "").trim();
+const baiDayDu = (loai) => `${thanBai(loai)}\n\n${trangThai.bai.dong_cuoi}`;
 function veVungSua() {
   const b = trangThai.bai;
+  b.loai_bai = b.loai_bai || "ngan";
   $("#vungSua").innerHTML = `
     <label class="nhan" for="oTieuDe">Tiêu đề</label>
     <input type="text" id="oTieuDe" value="${esc(b.tieu_de)}">
+    <div class="goi-y">${esc(b.cach_doc || "")}</div>
 
-    <label class="nhan" for="oTomTat">Tóm tắt <span class="nhan-nguon">${esc(b.nguon_tom_tat)}</span><span class="dem" id="dem"></span></label>
-    <textarea id="oTomTat" rows="3">${esc(b.tom_tat)}</textarea>
-    <div class="goi-y">Bắt buộc dưới 140 ký tự (tối đa ${GIOI_HAN}).</div>
+    <div class="nhan" style="margin-top:18px">Bài đăng social <span class="nhan-nguon">${esc(b.nguon_tom_tat)}</span></div>
+    <div class="goi-y" style="margin-top:-2px">Chọn bản muốn đăng. Dòng "Tham khảo bài viết tại…" luôn tự gắn ở cuối để tạo backlink.</div>
     ${b.canh_bao ? `<div class="canh-bao">${esc(b.canh_bao)}</div>` : ""}
+    ${["ngan", "dai"].map((loai) => `
+      <div class="the-bai" data-loai="${loai}">
+        <div class="dau-the-bai">
+          <label class="chon-bai"><input type="radio" name="loaiBai" value="${loai}" ${b.loai_bai === loai ? "checked" : ""}>
+            ${TEN_LOAI[loai]} <span>· tối đa ${b.gioi_han_bai[loai]} ký tự</span></label>
+          <span class="dem" id="dem_${loai}"></span>
+        </div>
+        <textarea id="o_${loai}" rows="${loai === "ngan" ? 5 : 10}" aria-label="${TEN_LOAI[loai]}">${esc(b["bai_" + loai])}</textarea>
+        <div class="dong-khoa">🔒 ${esc(b.dong_cuoi)}</div>
+        <button type="button" class="nut phu nho" data-chep="${loai}">Sao chép ${TEN_LOAI[loai].toLowerCase()}</button>
+      </div>`).join("")}
+
+    <label class="nhan" for="oTomTat">Mô tả 1 câu (dưới 140 ký tự)<span class="dem" id="dem"></span></label>
+    <textarea id="oTomTat" rows="2">${esc(b.tom_tat)}</textarea>
+    <div class="goi-y">Dùng cho nền tảng giới hạn chữ hoặc có ô "mô tả" riêng.</div>
 
     <label class="nhan">Ảnh</label>
     <div class="hang-anh">
@@ -377,23 +404,27 @@ function veVungSua() {
       <button class="nut chu nho" id="nutAnhGoc" type="button">Dùng lại ảnh gốc</button>
     </div>
 
-    <label class="nhan">Đường dẫn bài gốc</label>
-    <div class="link-khoa">🔒 <span>${esc(b.link_goc)}</span></div>
-    <div class="goi-y">Tự động gắn vào cuối bài đăng để tạo liên kết ngược — không cần làm gì.</div>
-
     <div class="xem-truoc">
-      <h3>Bài đăng sẽ trông như thế này</h3>
+      <h3 id="xtTieuDeKhung">Bài đăng sẽ trông như thế này</h3>
       <div class="bai-dang">
         <div class="tac-gia"><span></span>Trang của bạn</div>
         <div class="noi-dung" id="xtNoiDung"></div>
         <div id="xtAnh"></div>
       </div>
+      <div class="goi-y">Tiêu đề gửi kèm (cho nền tảng có ô tiêu đề riêng): <b id="xtTieuDe"></b></div>
     </div>
 
     ${b.noi_dung ? `<details class="toan-van"><summary>Xem nội dung toàn văn đã lấy (${b.so_chu.toLocaleString("vi")} chữ)</summary><div>${esc(b.noi_dung)}</div></details>` : ""}
   `;
   $("#oTieuDe").oninput = (e) => { b.tieu_de = e.target.value; veXemTruoc(); };
   $("#oTomTat").oninput = (e) => { b.tom_tat = e.target.value; veXemTruoc(); };
+  for (const loai of ["ngan", "dai"]) $("#o_" + loai).oninput = (e) => { b["bai_" + loai] = e.target.value; veXemTruoc(); };
+  document.querySelectorAll('input[name="loaiBai"]').forEach((o) => o.onchange = () => { b.loai_bai = o.value; veXemTruoc(); });
+  document.querySelectorAll("[data-chep]").forEach((n) => n.onclick = async () => {
+    try { await navigator.clipboard.writeText(baiDayDu(n.dataset.chep)); n.textContent = "Đã chép ✓"; }
+    catch { n.textContent = "Không chép được — hãy bôi đen rồi Ctrl+C"; }
+    setTimeout(() => (n.textContent = `Sao chép ${TEN_LOAI[n.dataset.chep].toLowerCase()}`), 1800);
+  });
   $("#oAnh").onchange = chonAnh;
   $("#nutAnhGoc").onclick = () => { b.anh_tai_len = null; veXemTruoc(); };
   veXemTruoc();
@@ -404,7 +435,19 @@ function veXemTruoc() {
   const dem = $("#dem");
   dem.textContent = `${n}/${GIOI_HAN}`;
   dem.classList.toggle("qua", n > GIOI_HAN || n === 0);
-  $("#xtNoiDung").innerHTML = `<b>${esc(gon(b.tieu_de))}</b>\n\n${esc(gon(b.tom_tat))}\n\n<a href="${esc(b.link_goc)}" target="_blank" rel="noopener">${esc(b.link_goc)}</a>`;
+  for (const loai of ["ngan", "dai"]) {
+    const m = doDai(baiDayDu(loai)), gh = b.gioi_han_bai[loai];
+    const d = $("#dem_" + loai);
+    d.textContent = `${m}/${gh}`;
+    d.classList.toggle("qua", m > gh || !thanBai(loai));
+    document.querySelector(`.the-bai[data-loai="${loai}"]`).classList.toggle("chon", b.loai_bai === loai);
+  }
+  $("#xtTieuDeKhung").textContent = `Bài đăng sẽ trông như thế này (${TEN_LOAI[b.loai_bai].toLowerCase()})`;
+  const dong = baiDayDu(b.loai_bai).split("\n");
+  const cuoi = dong.pop();
+  $("#xtNoiDung").innerHTML = esc(dong.join("\n")) + "\n" +
+    esc(cuoi.slice(0, cuoi.length - b.link_goc.length)) + `<a href="${esc(b.link_goc)}" target="_blank" rel="noopener">${esc(b.link_goc)}</a>`;
+  $("#xtTieuDe").textContent = gon(b.tieu_de);
   const src = anhDangDung();
   $("#xtAnh").innerHTML = src ? `<img src="${esc(src)}" alt="Ảnh bài đăng" referrerpolicy="no-referrer">` : `<div class="khong-anh">Bài này không có ảnh — hãy tải một ảnh lên.</div>`;
   const nho = $("#anhNho");
@@ -557,6 +600,9 @@ function lyDoChuaDang() {
   const n = doDai(gon(b.tom_tat));
   if (!n) return "Bài chưa có đoạn tóm tắt.";
   if (n > GIOI_HAN) return `Tóm tắt đang ${n} ký tự — cần rút xuống dưới 140.`;
+  const gh = b.gioi_han_bai[b.loai_bai];
+  if (!thanBai(b.loai_bai)) return `${TEN_LOAI[b.loai_bai]} chưa có nội dung.`;
+  if (doDai(baiDayDu(b.loai_bai)) > gh) return `${TEN_LOAI[b.loai_bai]} đang ${doDai(baiDayDu(b.loai_bai))} ký tự — tối đa ${gh}.`;
   if (!trangThai.ketNoi.some((k) => k.bat)) return "Chưa bật nơi đăng nào ở bước 2.";
   return "";
 }
@@ -565,7 +611,7 @@ function capNhatNutDang() {
   const soNoi = trangThai.ketNoi.filter((k) => k.bat).length;
   const nut = $("#nutDang");
   nut.disabled = !!lyDo || trangThai.dangDang;
-  if (!trangThai.dangDang) nut.textContent = soNoi ? `Đăng lên ${soNoi} nơi đang bật` : "Đăng bài";
+  if (!trangThai.dangDang) nut.textContent = soNoi ? `Đăng ${trangThai.bai ? TEN_LOAI[trangThai.bai.loai_bai || "ngan"].toLowerCase() : "bài"} lên ${soNoi} nơi đang bật` : "Đăng bài";
   $("#lyDo").textContent = lyDo;
 }
 $("#nutDang").onclick = async () => {
@@ -579,6 +625,7 @@ $("#nutDang").onclick = async () => {
   try {
     const kq = await goi("/dang-bai", "POST", {
       tieu_de: gon(b.tieu_de), tom_tat: gon(b.tom_tat), link_goc: b.link_goc,
+      loai_bai: b.loai_bai, than_bai: thanBai(b.loai_bai),
       anh_url: b.anh_url, anh_tai_len: b.anh_tai_len,
     });
     veBang(kq.ket_qua);

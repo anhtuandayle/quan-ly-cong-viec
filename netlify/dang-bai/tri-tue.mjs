@@ -1,13 +1,14 @@
 // Phần AI (tuỳ chọn): dùng Claude để tóm tắt bài và tự tìm cách kết nối một nền tảng bất kỳ.
 import Anthropic from "@anthropic-ai/sdk";
 import { GIOI_HAN_TOM_TAT, chuanHoa, doDai, rutGon } from "./trich-xuat.mjs";
+import { catTheoCau, nganSach } from "./bai-dang.mjs";
 
 const MO_HINH = "claude-opus-5";
 
 export class LoiAI extends Error {}
 
-async function goi(chiaKhoa, loiNhac, schema, effort) {
-  const may = new Anthropic({ apiKey: chiaKhoa, timeout: 50_000, maxRetries: 0 }); // Netlify cho tối đa 60 giây
+async function goi(chiaKhoa, loiNhac, schema, effort, thoiGian = 50_000) {
+  const may = new Anthropic({ apiKey: chiaKhoa, timeout: thoiGian, maxRetries: 0 }); // Netlify cho tối đa 60 giây
   let r;
   try {
     r = await may.beta.messages.create({
@@ -36,32 +37,48 @@ async function goi(chiaKhoa, loiNhac, schema, effort) {
   try { return JSON.parse(vanBan); } catch { throw new LoiAI("Claude trả lời sai định dạng. Thử lại nhé."); }
 }
 
-// ---------------------------------------------------------------- tóm tắt
+// ---------------------------------------------------------------- bài đăng social 2 dạng
 
-const KHUON_TOM_TAT = {
+const KHUON_BAI = {
   type: "object",
-  properties: { tom_tat: { type: "string" } },
-  required: ["tom_tat"],
+  properties: { tom_tat: { type: "string" }, bai_ngan: { type: "string" }, bai_dai: { type: "string" } },
+  required: ["tom_tat", "bai_ngan", "bai_dai"],
   additionalProperties: false,
 };
 
-export async function tomTatAI(chiaKhoa, tieuDe, noiDung) {
-  const loiNhac = `Tóm tắt bài viết dưới đây thành MỘT câu giới thiệu để đăng mạng xã hội.
+// Một lần gọi AI: câu tóm tắt < 140 ký tự + bài ngắn + bài dài (chưa gồm dòng link cuối).
+// hanChot = thời điểm (ms) phải xong, để cả lượt xử lý không vượt 60 giây của Netlify.
+export async function taoBaiAI(chiaKhoa, tieuDe, noiDung, link, hanChot) {
+  const hanNgan = nganSach("ngan", link), hanDai = nganSach("dai", link);
+  const loiNhac = `Bạn là người viết nội dung mạng xã hội cho một thương hiệu. Dựa vào bài viết bên dưới, viết:
 
-Yêu cầu:
-- Viết cùng ngôn ngữ với bài viết.
-- Dài từ 80 đến 130 ký tự (tính cả dấu cách). Tuyệt đối không quá ${GIOI_HAN_TOM_TAT} ký tự.
-- Nêu ý chính hấp dẫn nhất; không hashtag, không emoji, không chèn đường dẫn, không lặp lại nguyên văn tiêu đề.
+1. tom_tat: MỘT câu giới thiệu 80–130 ký tự (tuyệt đối không quá ${GIOI_HAN_TOM_TAT}).
+2. bai_ngan: bài đăng ngắn, 1 đoạn, dài ${hanNgan - 120}–${hanNgan - 20} ký tự. Tuyệt đối không quá ${hanNgan} ký tự.
+3. bai_dai: bài đăng dài, 2–4 đoạn ngắn (cách nhau 1 dòng trống), có thể liệt kê 2–4 ý chính bằng dấu "–" đầu dòng, dài ${hanDai - 200}–${hanDai - 30} ký tự. Tuyệt đối không quá ${hanDai} ký tự.
+
+Yêu cầu chung:
+- Viết cùng ngôn ngữ với bài viết, giọng tự nhiên, câu mở đầu gây tò mò; mô tả ngắn gọn bài viết nói gì và người đọc nhận được gì.
+- Chỉ dùng thông tin có trong bài, không bịa số liệu.
+- KHÔNG chèn đường dẫn, KHÔNG hashtag, KHÔNG viết câu "tham khảo bài viết tại" (hệ thống tự thêm dòng này ở cuối).
+- Số ký tự tính cả dấu cách và xuống dòng.
 
 <tieu_de>${tieuDe}</tieu_de>
 <bai_viet>
 ${noiDung.slice(0, 60000)}
 </bai_viet>`;
-  let kq = chuanHoa((await goi(chiaKhoa, loiNhac, KHUON_TOM_TAT, "low")).tom_tat);
-  if (doDai(kq) > GIOI_HAN_TOM_TAT) {
-    kq = chuanHoa((await goi(chiaKhoa, `Câu sau dài ${doDai(kq)} ký tự, hãy viết lại cho dưới 130 ký tự, giữ ý chính, cùng ngôn ngữ:\n\n${kq}`, KHUON_TOM_TAT, "low")).tom_tat);
+  const conLai = () => Math.max(5_000, hanChot - Date.now());
+  const kq = await goi(chiaKhoa, loiNhac, KHUON_BAI, "low", conLai());
+  let ngan = kq.bai_ngan.trim(), dai = kq.bai_dai.trim();
+  if ((doDai(ngan) > hanNgan || doDai(dai) > hanDai) && hanChot - Date.now() > 20_000) {
+    try {
+      const sua = await goi(chiaKhoa, `${loiNhac}
+
+Lần trước bạn viết bài ngắn ${doDai(ngan)} ký tự (giới hạn ${hanNgan}) và bài dài ${doDai(dai)} ký tự (giới hạn ${hanDai}). Hãy viết lại cho đúng giới hạn.`, KHUON_BAI, "low", conLai());
+      ngan = sua.bai_ngan.trim(); dai = sua.bai_dai.trim();
+    } catch {} // hết giờ thì dùng bản cũ, cắt gọn bên dưới
   }
-  return rutGon(kq); // chốt chặn cuối: luôn dưới 140 ký tự
+  // chốt chặn cuối: luôn trong giới hạn
+  return { tom_tat: rutGon(chuanHoa(kq.tom_tat)), ngan: catTheoCau(ngan, hanNgan), dai: catTheoCau(dai, hanDai) };
 }
 
 // ---------------------------------------------------------------- công thức kết nối
@@ -102,11 +119,11 @@ const KHUON_CONG_THUC = {
 
 const huongDanCongThuc = (ten) => `Bạn thiết kế "công thức kết nối" để một phần mềm tự đăng bài lên nền tảng "${ten}" bằng MỘT yêu cầu HTTP duy nhất tới API chính thức của nền tảng.
 
-Bài đăng gồm: tiêu đề, đoạn tóm tắt ngắn, ảnh, đường dẫn bài gốc (luôn nằm cuối nội dung).
+Bài đăng gồm: tiêu đề, nội dung bài đăng (tối đa 1000 ký tự, dòng cuối là đường dẫn bài gốc), câu mô tả ngắn, ảnh.
 
 Các biến có thể dùng trong dia_chi, tieu_de_http và than_json (viết đúng dạng {{...}}):
 - {{tieu_de}}, {{tom_tat}}, {{link_goc}}
-- {{noi_dung}} = tiêu đề + tóm tắt + đường dẫn gốc ở cuối, đã ghép sẵn (nên dùng làm phần chữ của bài)
+- {{noi_dung}} = bài đăng hoàn chỉnh (300–1000 ký tự), dòng cuối là đường dẫn bài gốc — nên dùng làm phần chữ của bài
 - {{anh_url}} = đường dẫn công khai của ảnh (có thể rỗng nếu người dùng tự tải ảnh lên)
 - {{anh_tep}} = tệp ảnh thật, CHỈ dùng khi kieu_than là "multipart" (khuyên dùng vì luôn có ảnh)
 - {{anh_base64}} = ảnh dạng base64

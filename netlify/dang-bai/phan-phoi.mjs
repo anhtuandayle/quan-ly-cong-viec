@@ -94,7 +94,8 @@ async function guiMot(ketNoi, bai) {
     tieu_de: bai.tieu_de,
     tom_tat: bai.tom_tat,
     link_goc: bai.link_goc,
-    noi_dung: `${bai.tieu_de}\n\n${bai.tom_tat}\n\n${bai.link_goc}`,
+    // bài đã chọn (ngắn/dài), dòng cuối luôn là link bài gốc
+    noi_dung: bai.noi_dung || `${bai.tieu_de}\n\n${bai.tom_tat}\n\n${bai.link_goc}`,
     anh_url: bai.anh_tai_len ? "" : bai.anh_url || "",
     truong: ketNoi.gia_tri || {},
   };
