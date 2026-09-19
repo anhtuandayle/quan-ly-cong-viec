@@ -2,7 +2,7 @@
 // Không có nền tảng nào được viết cứng ở đây: mọi thông tin gửi đi đều nằm trong công thức.
 import { TRINH_DUYET } from "./trich-xuat.mjs";
 
-const BIEN = /\{\{\s*([\w.]+)\s*\}\}/g;
+const BIEN = /\{\{\s*([\w.:|]+)\s*\}\}/g;
 class LoiGui extends Error {}
 
 // ---------------------------------------------------------------- điền biến
@@ -22,9 +22,16 @@ export function dien(mau, bien, trongDiaChi = false) {
   let rong = false;
   const chiMotBien = /^\{\{\s*[\w.]+\s*\}\}$/.test(mau.trim());
   const kq = mau.replace(BIEN, (_, duong) => {
+    if (duong.startsWith("basic_auth:")) {
+      // Đăng nhập kiểu "Basic" (vd WordPress): base64 của "tên:mật_khẩu"
+      const phan = duong.slice("basic_auth:".length).split("|").map((x) => layTheoDuong(bien, x));
+      if (phan.some((p) => p === null || p === "")) { rong = true; return ""; }
+      return Buffer.from(phan.join(":")).toString("base64");
+    }
     let v = layTheoDuong(bien, duong);
     if (v === null || v === "") { rong = true; return ""; }
     v = typeof v === "string" ? v : typeof v === "object" ? JSON.stringify(v) : String(v);
+    if (trongDiaChi && /^https?:\/\//.test(v)) return v.trim().replace(/\/+$/, ""); // người dùng dán địa chỉ trang — giữ nguyên
     // trong địa chỉ: nếu cả chuỗi chỉ là 1 biến (vd người dùng dán nguyên link webhook) thì giữ nguyên
     if (trongDiaChi && !chiMotBien) v = encodeURIComponent(v).replace(/%3A/gi, ":").replace(/%40/gi, "@");
     return v;
@@ -86,6 +93,19 @@ function rutThongBaoLoi(phanHoi, duongLoi) {
 
 // ---------------------------------------------------------------- gửi 1 nền tảng
 
+const escHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#x27;" }[c]));
+
+// Bản HTML của bài (cho WordPress, Blogger…): ảnh ở đầu, mỗi đoạn 1 thẻ <p>, link gốc bấm được
+function noiDungHtml(noiDung, link, anhUrl, tieuDe) {
+  const phan = anhUrl ? [`<p><img src="${escHtml(anhUrl)}" alt="${escHtml(tieuDe)}"></p>`] : [];
+  const dl = escHtml(link);
+  for (const doan of noiDung.split("\n\n")) {
+    const d = escHtml(doan).replace(/\n/g, "<br>");
+    phan.push(`<p>${d.includes(dl) ? d.replace(dl, `<a href="${dl}">${dl}</a>`) : d}</p>`);
+  }
+  return phan.join("\n");
+}
+
 async function guiMot(ketNoi, bai) {
   const ct = ketNoi.cong_thuc;
   const gui = ct.gui;
@@ -99,6 +119,7 @@ async function guiMot(ketNoi, bai) {
     anh_url: bai.anh_tai_len ? "" : bai.anh_url || "",
     truong: ketNoi.gia_tri || {},
   };
+  bien.noi_dung_html = noiDungHtml(bien.noi_dung, bai.link_goc, bien.anh_url, bai.tieu_de);
 
   let anh = null;
   if (dungBien(ct, "anh_tep") || dungBien(ct, "anh_base64")) {

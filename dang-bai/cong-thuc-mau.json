@@ -132,5 +132,58 @@
       "duong_dan_bai": "{{phan_hoi.url}}",
       "thong_bao_loi": ""
     }
+  },
+  {
+    "ten": "WordPress",
+    "ten_khac": [
+      "wp",
+      "wordpress.org",
+      "website wordpress",
+      "web wordpress",
+      "blog wordpress"
+    ],
+    "huong_dan": "1. Đăng nhập trang quản trị WordPress (tenmien.com/wp-admin) bằng tài khoản có quyền đăng bài (Tác giả/Biên tập viên/Quản trị).\n2. Vào Thành viên (Người dùng) → Hồ sơ, kéo xuống mục \"Mật khẩu ứng dụng\" (Application Passwords).\n3. Gõ tên bất kỳ, vd \"Dang bai da kenh\", bấm \"Thêm mật khẩu ứng dụng mới\" → sao chép dãy mật khẩu hiện ra (chỉ hiện 1 lần).\n4. Điền địa chỉ trang, tên đăng nhập và dãy mật khẩu đó vào các ô bên dưới. KHÔNG dùng mật khẩu đăng nhập thường.\nLưu ý: trang phải chạy https; nếu không thấy mục Mật khẩu ứng dụng, nhờ bộ phận kỹ thuật kiểm tra plugin bảo mật.",
+    "truong": [
+      {
+        "khoa": "dia_chi_trang",
+        "nhan": "Địa chỉ trang WordPress",
+        "bi_mat": false,
+        "bat_buoc": true,
+        "goi_y": "Ví dụ https://tenmien.com"
+      },
+      {
+        "khoa": "ten_dang_nhap",
+        "nhan": "Tên đăng nhập WordPress",
+        "bi_mat": false,
+        "bat_buoc": true,
+        "goi_y": "Tên bạn dùng để vào wp-admin"
+      },
+      {
+        "khoa": "mat_khau_ung_dung",
+        "nhan": "Mật khẩu ứng dụng (Application Password)",
+        "bi_mat": true,
+        "bat_buoc": true,
+        "goi_y": "Dạng xxxx xxxx xxxx xxxx xxxx xxxx"
+      }
+    ],
+    "gui": {
+      "phuong_thuc": "POST",
+      "dia_chi": "{{truong.dia_chi_trang}}/wp-json/wp/v2/posts",
+      "tieu_de_http": {
+        "Authorization": "Basic {{basic_auth:truong.ten_dang_nhap|truong.mat_khau_ung_dung}}"
+      },
+      "kieu_than": "json",
+      "than": {
+        "title": "{{tieu_de}}",
+        "content": "{{noi_dung_html}}",
+        "excerpt": "{{tom_tat}}",
+        "status": "publish"
+      }
+    },
+    "ket_qua": {
+      "thanh_cong_khi": "id",
+      "duong_dan_bai": "{{phan_hoi.link}}",
+      "thong_bao_loi": "message"
+    }
   }
 ]

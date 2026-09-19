@@ -127,6 +127,8 @@ Các biến có thể dùng trong dia_chi, tieu_de_http và than_json (viết đ
 - {{anh_url}} = đường dẫn công khai của ảnh (có thể rỗng nếu người dùng tự tải ảnh lên)
 - {{anh_tep}} = tệp ảnh thật, CHỈ dùng khi kieu_than là "multipart" (khuyên dùng vì luôn có ảnh)
 - {{anh_base64}} = ảnh dạng base64
+- {{noi_dung_html}} = bài đăng dạng HTML (ảnh + các đoạn <p> + link gốc bấm được) — dùng cho blog/website nhận HTML
+- {{basic_auth:truong.A|truong.B}} = chuỗi base64 của "A:B" cho xác thực Basic, dùng như "Authorization": "Basic {{basic_auth:truong.A|truong.B}}"
 - {{truong.KHOA}} = giá trị người dùng nhập cho trường có khoa = KHOA
 
 Quy tắc:
