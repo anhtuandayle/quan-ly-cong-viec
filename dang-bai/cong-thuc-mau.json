@@ -1,330 +1,5 @@
 [
   {
-    "ten": "Facebook Page",
-    "ten_khac": [
-      "facebook",
-      "fb",
-      "fanpage",
-      "trang facebook",
-      "facebook fanpage"
-    ],
-    "huong_dan": "1. Vào developers.facebook.com, tạo một Ứng dụng (loại Business).\n2. Mở công cụ Graph API Explorer, chọn ứng dụng vừa tạo, xin quyền pages_manage_posts và pages_read_engagement.\n3. Ở mục 'User or Page' chọn đúng Fanpage của bạn để lấy Mã truy cập của Trang (Page Access Token).\n4. ID Trang: vào Fanpage → Giới thiệu → Minh bạch về Trang, hoặc xem trong Graph API Explorer.\nLưu ý: mã tạo nhanh chỉ sống vài giờ; nhờ bộ phận kỹ thuật đổi sang mã dài hạn nếu dùng lâu.",
-    "truong": [
-      {
-        "khoa": "page_id",
-        "nhan": "ID Trang (Page ID)",
-        "bi_mat": false,
-        "bat_buoc": true,
-        "goi_y": "Dãy số, ví dụ 102345678901234"
-      },
-      {
-        "khoa": "page_token",
-        "nhan": "Mã truy cập của Trang (Page Access Token)",
-        "bi_mat": true,
-        "bat_buoc": true,
-        "goi_y": "Dãy dài bắt đầu bằng EAA..."
-      }
-    ],
-    "gui": {
-      "phuong_thuc": "POST",
-      "dia_chi": "https://graph.facebook.com/{{truong.page_id}}/photos",
-      "tieu_de_http": {},
-      "kieu_than": "multipart",
-      "than": {
-        "message": "{{noi_dung}}",
-        "source": "{{anh_tep}}",
-        "access_token": "{{truong.page_token}}"
-      }
-    },
-    "ket_qua": {
-      "thanh_cong_khi": "",
-      "duong_dan_bai": "https://www.facebook.com/{{phan_hoi.post_id}}",
-      "thong_bao_loi": "error.message"
-    }
-  },
-  {
-    "ten": "LinkedIn",
-    "ten_khac": [
-      "linked in",
-      "linkedin ca nhan",
-      "linkedin profile"
-    ],
-    "huong_dan": "1. Vào https://www.linkedin.com/developers → Create app. Cần gắn app với 1 Trang LinkedIn (dùng trang công ty hoặc tạo trang mới), logo bất kỳ.\n2. Mở tab Products, bấm Request access cho \"Share on LinkedIn\" và \"Sign In with LinkedIn using OpenID Connect\" (được duyệt ngay, miễn phí).\n3. Mở tab Auth → OAuth 2.0 tools → Token generator: chọn app vừa tạo, tích openid, profile, w_member_social → Request access token → đăng nhập, bấm Allow.\n4. Sao chép mã (Access token) dán vào ô bên dưới.\nLưu ý: bài đăng lên TRANG CÁ NHÂN của bạn. Mã hết hạn sau 60 ngày — khi báo lỗi 401, lấy mã mới rồi xoá kết nối cũ, kết nối lại.",
-    "truong": [
-      {
-        "khoa": "ma_truy_cap",
-        "nhan": "Mã truy cập LinkedIn (Access token)",
-        "bi_mat": true,
-        "bat_buoc": true,
-        "goi_y": "Dãy rất dài bắt đầu bằng AQ…"
-      }
-    ],
-    "buoc_truoc": [
-      {
-        "ten": "toi",
-        "mo_ta": "xác định tài khoản LinkedIn",
-        "phuong_thuc": "GET",
-        "dia_chi": "https://api.linkedin.com/v2/userinfo",
-        "tieu_de_http": {
-          "Authorization": "Bearer {{truong.ma_truy_cap}}"
-        }
-      }
-    ],
-    "gui": {
-      "phuong_thuc": "POST",
-      "dia_chi": "https://api.linkedin.com/rest/posts",
-      "tieu_de_http": {
-        "Authorization": "Bearer {{truong.ma_truy_cap}}",
-        "LinkedIn-Version": "202609",
-        "X-Restli-Protocol-Version": "2.0.0"
-      },
-      "kieu_than": "json",
-      "than": {
-        "author": "urn:li:person:{{buoc.toi.sub}}",
-        "commentary": "{{noi_dung|little}}",
-        "visibility": "PUBLIC",
-        "distribution": {
-          "feedDistribution": "MAIN_FEED",
-          "targetEntities": [],
-          "thirdPartyDistributionChannels": []
-        },
-        "content": {
-          "article": {
-            "source": "{{link_goc}}",
-            "title": "{{tieu_de|cat:200}}",
-            "description": "{{tom_tat}}"
-          }
-        },
-        "lifecycleState": "PUBLISHED",
-        "isReshareDisabledByAuthor": false
-      }
-    },
-    "ket_qua": {
-      "thanh_cong_khi": "",
-      "duong_dan_bai": "https://www.linkedin.com/feed/update/{{dau_phan_hoi.x-restli-id}}/",
-      "thong_bao_loi": "message"
-    }
-  },
-  {
-    "ten": "Mastodon",
-    "ten_khac": [
-      "mastodon.social",
-      "fediverse",
-      "masto"
-    ],
-    "huong_dan": "1. Đăng nhập Mastodon trên web (vd https://mastodon.social).\n2. Vào Tùy chỉnh (Preferences) → Phát triển (Development) → Ứng dụng mới (New application).\n3. Đặt tên bất kỳ, vd \"Dang bai da kenh\", giữ nguyên các quyền mặc định → bấm Lưu.\n4. Bấm vào ứng dụng vừa tạo, sao chép dòng \"Mã truy cập của bạn\" (Your access token).\nLưu ý: Mastodon thường giới hạn 500 ký tự/bài nên hệ thống luôn đăng BẢN NGẮN lên Mastodon.",
-    "truong": [
-      {
-        "khoa": "may_chu",
-        "nhan": "Địa chỉ máy chủ Mastodon",
-        "bi_mat": false,
-        "bat_buoc": true,
-        "goi_y": "Ví dụ https://mastodon.social"
-      },
-      {
-        "khoa": "ma_truy_cap",
-        "nhan": "Mã truy cập (Access token)",
-        "bi_mat": true,
-        "bat_buoc": true,
-        "goi_y": "Dãy ký tự dài lấy ở bước 4"
-      }
-    ],
-    "buoc_truoc": [
-      {
-        "ten": "anh",
-        "mo_ta": "tải ảnh lên",
-        "phuong_thuc": "POST",
-        "dia_chi": "{{truong.may_chu}}/api/v2/media",
-        "tieu_de_http": {
-          "Authorization": "Bearer {{truong.ma_truy_cap}}"
-        },
-        "kieu_than": "multipart",
-        "than": {
-          "file": "{{anh_tep}}",
-          "description": "{{tieu_de|cat:1000}}"
-        },
-        "bo_qua_neu_loi": true
-      }
-    ],
-    "gui": {
-      "phuong_thuc": "POST",
-      "dia_chi": "{{truong.may_chu}}/api/v1/statuses",
-      "tieu_de_http": {
-        "Authorization": "Bearer {{truong.ma_truy_cap}}"
-      },
-      "kieu_than": "json",
-      "than": {
-        "status": "{{bai_ngan}}",
-        "media_ids": [
-          "{{buoc.anh.id}}"
-        ],
-        "visibility": "public"
-      }
-    },
-    "ket_qua": {
-      "thanh_cong_khi": "id",
-      "duong_dan_bai": "{{phan_hoi.url}}",
-      "thong_bao_loi": "error"
-    }
-  },
-  {
-    "ten": "Pinterest",
-    "ten_khac": [
-      "pin",
-      "pinterest business",
-      "ghim pinterest"
-    ],
-    "huong_dan": "1. Dùng tài khoản Pinterest Business (miễn phí — chuyển trong Cài đặt → Quản lý tài khoản).\n2. Vào https://developers.pinterest.com → My apps → tạo ứng dụng (Connect app), điền thông tin và chờ được cấp quyền dùng thử (Trial).\n3. Trong trang ứng dụng, tạo mã truy cập (Access token) cho chính tài khoản của bạn, chọn quyền boards:read và pins:write.\n4. Dán mã vào ô bên dưới và gõ ĐÚNG tên bảng (board) muốn ghim.\nLưu ý quan trọng: khi ứng dụng còn ở chế độ Trial, pin chỉ mình bạn thấy. Muốn pin hiện công khai, bấm \"Upgrade to Standard access\" (miễn phí, Pinterest xét duyệt vài ngày). Pin luôn gắn link bài gốc và dùng BẢN NGẮN làm mô tả.",
-    "truong": [
-      {
-        "khoa": "ma_truy_cap",
-        "nhan": "Mã truy cập Pinterest (Access token)",
-        "bi_mat": true,
-        "bat_buoc": true,
-        "goi_y": "Dãy bắt đầu bằng pina_…"
-      },
-      {
-        "khoa": "ten_bang",
-        "nhan": "Tên bảng (board) muốn ghim",
-        "bi_mat": false,
-        "bat_buoc": true,
-        "goi_y": "Gõ đúng tên bảng, vd Marketing"
-      }
-    ],
-    "buoc_truoc": [
-      {
-        "ten": "bang",
-        "mo_ta": "tìm bảng Pinterest",
-        "phuong_thuc": "GET",
-        "dia_chi": "https://api.pinterest.com/v5/boards?page_size=250",
-        "tieu_de_http": {
-          "Authorization": "Bearer {{truong.ma_truy_cap}}"
-        },
-        "chon_trong": {
-          "danh_sach": "items",
-          "truong": "name",
-          "gia_tri": "{{truong.ten_bang}}"
-        }
-      }
-    ],
-    "gui": {
-      "phuong_thuc": "POST",
-      "dia_chi": "https://api.pinterest.com/v5/pins",
-      "tieu_de_http": {
-        "Authorization": "Bearer {{truong.ma_truy_cap}}"
-      },
-      "kieu_than": "json",
-      "than": {
-        "board_id": "{{buoc.bang.id}}",
-        "title": "{{tieu_de|cat:100}}",
-        "description": "{{bai_ngan|cat:500}}",
-        "link": "{{link_goc}}",
-        "alt_text": "{{tieu_de|cat:500}}",
-        "media_source": {
-          "source_type": "image_base64",
-          "content_type": "{{anh_kieu}}",
-          "data": "{{anh_base64}}"
-        }
-      }
-    },
-    "ket_qua": {
-      "thanh_cong_khi": "id",
-      "duong_dan_bai": "https://www.pinterest.com/pin/{{phan_hoi.id}}/",
-      "thong_bao_loi": "message"
-    }
-  },
-  {
-    "ten": "Telegram",
-    "ten_khac": [
-      "tele",
-      "telegram bot",
-      "telegram channel",
-      "kênh telegram"
-    ],
-    "huong_dan": "1. Mở Telegram, tìm @BotFather, gõ /newbot rồi đặt tên cho bot.\n2. BotFather gửi lại một dãy mã dạng 123456:ABC... — đó là Mã bot, dán vào ô bên dưới.\n3. Muốn đăng lên kênh: thêm bot vào kênh và cho làm Quản trị viên. ID nơi nhận là @ten_kenh (kênh công khai).\n4. Muốn gửi cho chính mình: nhắn một tin bất kỳ cho bot, rồi dùng dãy số chat_id của bạn làm ID nơi nhận.",
-    "truong": [
-      {
-        "khoa": "bot_token",
-        "nhan": "Mã bot (Bot Token)",
-        "bi_mat": true,
-        "bat_buoc": true,
-        "goi_y": "Dạng 123456789:AAH..."
-      },
-      {
-        "khoa": "chat_id",
-        "nhan": "ID nơi nhận (kênh / nhóm / người)",
-        "bi_mat": false,
-        "bat_buoc": true,
-        "goi_y": "Ví dụ @kenh_cua_toi hoặc 123456789"
-      }
-    ],
-    "gui": {
-      "phuong_thuc": "POST",
-      "dia_chi": "https://api.telegram.org/bot{{truong.bot_token}}/sendPhoto",
-      "tieu_de_http": {},
-      "kieu_than": "multipart",
-      "than": {
-        "chat_id": "{{truong.chat_id}}",
-        "caption": "{{noi_dung}}",
-        "photo": "{{anh_tep}}"
-      }
-    },
-    "ket_qua": {
-      "thanh_cong_khi": "ok",
-      "duong_dan_bai": "https://t.me/{{phan_hoi.result.chat.username}}/{{phan_hoi.result.message_id}}",
-      "thong_bao_loi": "description"
-    }
-  },
-  {
-    "ten": "Webhook (Make / Zapier / n8n)",
-    "ten_khac": [
-      "webhook",
-      "make",
-      "make.com",
-      "zapier",
-      "n8n",
-      "integromat"
-    ],
-    "huong_dan": "Dùng cách này để nối với BẤT KỲ nền tảng nào (LinkedIn, X, Zalo OA, WordPress...):\n1. Vào Make.com (hoặc Zapier), tạo kịch bản mới, bước đầu chọn 'Webhooks → Custom webhook'.\n2. Sao chép đường dẫn webhook mà Make đưa cho bạn, dán vào ô bên dưới.\n3. Bấm 'Đăng' một lần để Make nhận mẫu dữ liệu (tieu_de, tom_tat, link_goc, anh_url, noi_dung).\n4. Trong Make, thêm bước đăng lên nền tảng bạn muốn và kéo các ô dữ liệu vào.",
-    "truong": [
-      {
-        "khoa": "dia_chi_webhook",
-        "nhan": "Đường dẫn Webhook",
-        "bi_mat": true,
-        "bat_buoc": true,
-        "goi_y": "Ví dụ https://hook.eu2.make.com/abc123..."
-      },
-      {
-        "khoa": "ma_bao_mat",
-        "nhan": "Mã bảo mật (nếu có)",
-        "bi_mat": true,
-        "bat_buoc": false,
-        "goi_y": "Để trống nếu webhook không yêu cầu"
-      }
-    ],
-    "gui": {
-      "phuong_thuc": "POST",
-      "dia_chi": "{{truong.dia_chi_webhook}}",
-      "tieu_de_http": {
-        "Authorization": "Bearer {{truong.ma_bao_mat}}"
-      },
-      "kieu_than": "json",
-      "than": {
-        "tieu_de": "{{tieu_de}}",
-        "tom_tat": "{{tom_tat}}",
-        "link_goc": "{{link_goc}}",
-        "anh_url": "{{anh_url}}",
-        "anh_base64": "{{anh_base64}}",
-        "noi_dung": "{{noi_dung}}"
-      }
-    },
-    "ket_qua": {
-      "thanh_cong_khi": "",
-      "duong_dan_bai": "{{phan_hoi.url}}",
-      "thong_bao_loi": ""
-    }
-  },
-  {
     "ten": "WordPress.com",
     "ten_khac": [
       "wordpresscom",
@@ -390,7 +65,8 @@
       "thanh_cong_khi": "ID",
       "duong_dan_bai": "{{phan_hoi.URL}}",
       "thong_bao_loi": "message"
-    }
+    },
+    "thu_tu": 1
   },
   {
     "ten": "WordPress (tự cài)",
@@ -444,6 +120,481 @@
       "thanh_cong_khi": "id",
       "duong_dan_bai": "{{phan_hoi.link}}",
       "thong_bao_loi": "message"
+    },
+    "thu_tu": 2
+  },
+  {
+    "ten": "Mastodon",
+    "ten_khac": [
+      "mastodon.social",
+      "fediverse",
+      "masto"
+    ],
+    "huong_dan": "1. Đăng nhập Mastodon trên web (vd https://mastodon.social).\n2. Vào Tùy chỉnh (Preferences) → Phát triển (Development) → Ứng dụng mới (New application).\n3. Đặt tên bất kỳ, vd \"Dang bai da kenh\", giữ nguyên các quyền mặc định → bấm Lưu.\n4. Bấm vào ứng dụng vừa tạo, sao chép dòng \"Mã truy cập của bạn\" (Your access token).\nLưu ý: Mastodon thường giới hạn 500 ký tự/bài nên hệ thống luôn đăng BẢN NGẮN lên Mastodon.",
+    "truong": [
+      {
+        "khoa": "may_chu",
+        "nhan": "Địa chỉ máy chủ Mastodon",
+        "bi_mat": false,
+        "bat_buoc": true,
+        "goi_y": "Ví dụ https://mastodon.social"
+      },
+      {
+        "khoa": "ma_truy_cap",
+        "nhan": "Mã truy cập (Access token)",
+        "bi_mat": true,
+        "bat_buoc": true,
+        "goi_y": "Dãy ký tự dài lấy ở bước 4"
+      }
+    ],
+    "buoc_truoc": [
+      {
+        "ten": "anh",
+        "mo_ta": "tải ảnh lên",
+        "phuong_thuc": "POST",
+        "dia_chi": "{{truong.may_chu}}/api/v2/media",
+        "tieu_de_http": {
+          "Authorization": "Bearer {{truong.ma_truy_cap}}"
+        },
+        "kieu_than": "multipart",
+        "than": {
+          "file": "{{anh_tep}}",
+          "description": "{{tieu_de|cat:1000}}"
+        },
+        "bo_qua_neu_loi": true
+      }
+    ],
+    "gui": {
+      "phuong_thuc": "POST",
+      "dia_chi": "{{truong.may_chu}}/api/v1/statuses",
+      "tieu_de_http": {
+        "Authorization": "Bearer {{truong.ma_truy_cap}}"
+      },
+      "kieu_than": "json",
+      "than": {
+        "status": "{{bai_ngan}}",
+        "media_ids": [
+          "{{buoc.anh.id}}"
+        ],
+        "visibility": "public"
+      }
+    },
+    "ket_qua": {
+      "thanh_cong_khi": "id",
+      "duong_dan_bai": "{{phan_hoi.url}}",
+      "thong_bao_loi": "error"
+    },
+    "thu_tu": 3
+  },
+  {
+    "ten": "Pinterest",
+    "ten_khac": [
+      "pin",
+      "pinterest business",
+      "ghim pinterest"
+    ],
+    "huong_dan": "1. Dùng tài khoản Pinterest Business (miễn phí — chuyển trong Cài đặt → Quản lý tài khoản).\n2. Vào https://developers.pinterest.com → My apps → tạo ứng dụng (Connect app), điền thông tin và chờ được cấp quyền dùng thử (Trial).\n3. Trong trang ứng dụng, tạo mã truy cập (Access token) cho chính tài khoản của bạn, chọn quyền boards:read và pins:write.\n4. Dán mã vào ô bên dưới và gõ ĐÚNG tên bảng (board) muốn ghim.\nLưu ý quan trọng: khi ứng dụng còn ở chế độ Trial, pin chỉ mình bạn thấy. Muốn pin hiện công khai, bấm \"Upgrade to Standard access\" (miễn phí, Pinterest xét duyệt vài ngày). Pin luôn gắn link bài gốc và dùng BẢN NGẮN làm mô tả.",
+    "truong": [
+      {
+        "khoa": "ma_truy_cap",
+        "nhan": "Mã truy cập Pinterest (Access token)",
+        "bi_mat": true,
+        "bat_buoc": true,
+        "goi_y": "Dãy bắt đầu bằng pina_…"
+      },
+      {
+        "khoa": "ten_bang",
+        "nhan": "Tên bảng (board) muốn ghim",
+        "bi_mat": false,
+        "bat_buoc": true,
+        "goi_y": "Gõ đúng tên bảng, vd Marketing"
+      }
+    ],
+    "buoc_truoc": [
+      {
+        "ten": "bang",
+        "mo_ta": "tìm bảng Pinterest",
+        "phuong_thuc": "GET",
+        "dia_chi": "https://api.pinterest.com/v5/boards?page_size=250",
+        "tieu_de_http": {
+          "Authorization": "Bearer {{truong.ma_truy_cap}}"
+        },
+        "chon_trong": {
+          "danh_sach": "items",
+          "truong": "name",
+          "gia_tri": "{{truong.ten_bang}}"
+        }
+      }
+    ],
+    "gui": {
+      "phuong_thuc": "POST",
+      "dia_chi": "https://api.pinterest.com/v5/pins",
+      "tieu_de_http": {
+        "Authorization": "Bearer {{truong.ma_truy_cap}}"
+      },
+      "kieu_than": "json",
+      "than": {
+        "board_id": "{{buoc.bang.id}}",
+        "title": "{{tieu_de|cat:100}}",
+        "description": "{{bai_ngan|cat:500}}",
+        "link": "{{link_goc}}",
+        "alt_text": "{{tieu_de|cat:500}}",
+        "media_source": {
+          "source_type": "image_base64",
+          "content_type": "{{anh_kieu}}",
+          "data": "{{anh_base64}}"
+        }
+      }
+    },
+    "ket_qua": {
+      "thanh_cong_khi": "id",
+      "duong_dan_bai": "https://www.pinterest.com/pin/{{phan_hoi.id}}/",
+      "thong_bao_loi": "message"
+    },
+    "thu_tu": 4
+  },
+  {
+    "ten": "LinkedIn",
+    "ten_khac": [
+      "linked in",
+      "linkedin ca nhan",
+      "linkedin profile"
+    ],
+    "huong_dan": "1. Vào https://www.linkedin.com/developers → Create app. Cần gắn app với 1 Trang LinkedIn (dùng trang công ty hoặc tạo trang mới), logo bất kỳ.\n2. Mở tab Products, bấm Request access cho \"Share on LinkedIn\" và \"Sign In with LinkedIn using OpenID Connect\" (được duyệt ngay, miễn phí).\n3. Mở tab Auth → OAuth 2.0 tools → Token generator: chọn app vừa tạo, tích openid, profile, w_member_social → Request access token → đăng nhập, bấm Allow.\n4. Sao chép mã (Access token) dán vào ô bên dưới.\nLưu ý: bài đăng lên TRANG CÁ NHÂN của bạn. Mã hết hạn sau 60 ngày — khi báo lỗi 401, lấy mã mới rồi xoá kết nối cũ, kết nối lại.",
+    "truong": [
+      {
+        "khoa": "ma_truy_cap",
+        "nhan": "Mã truy cập LinkedIn (Access token)",
+        "bi_mat": true,
+        "bat_buoc": true,
+        "goi_y": "Dãy rất dài bắt đầu bằng AQ…"
+      }
+    ],
+    "buoc_truoc": [
+      {
+        "ten": "toi",
+        "mo_ta": "xác định tài khoản LinkedIn",
+        "phuong_thuc": "GET",
+        "dia_chi": "https://api.linkedin.com/v2/userinfo",
+        "tieu_de_http": {
+          "Authorization": "Bearer {{truong.ma_truy_cap}}"
+        }
+      }
+    ],
+    "gui": {
+      "phuong_thuc": "POST",
+      "dia_chi": "https://api.linkedin.com/rest/posts",
+      "tieu_de_http": {
+        "Authorization": "Bearer {{truong.ma_truy_cap}}",
+        "LinkedIn-Version": "202609",
+        "X-Restli-Protocol-Version": "2.0.0"
+      },
+      "kieu_than": "json",
+      "than": {
+        "author": "urn:li:person:{{buoc.toi.sub}}",
+        "commentary": "{{noi_dung|little}}",
+        "visibility": "PUBLIC",
+        "distribution": {
+          "feedDistribution": "MAIN_FEED",
+          "targetEntities": [],
+          "thirdPartyDistributionChannels": []
+        },
+        "content": {
+          "article": {
+            "source": "{{link_goc}}",
+            "title": "{{tieu_de|cat:200}}",
+            "description": "{{tom_tat}}"
+          }
+        },
+        "lifecycleState": "PUBLISHED",
+        "isReshareDisabledByAuthor": false
+      }
+    },
+    "ket_qua": {
+      "thanh_cong_khi": "",
+      "duong_dan_bai": "https://www.linkedin.com/feed/update/{{dau_phan_hoi.x-restli-id}}/",
+      "thong_bao_loi": "message"
+    },
+    "thu_tu": 5
+  },
+  {
+    "ten": "Blogger",
+    "ten_khac": [
+      "blogspot",
+      "blogger.com",
+      "google blogger"
+    ],
+    "huong_dan": "Blogger dùng tài khoản Google nên phải tạo “ứng dụng” một lần trong Google Cloud (miễn phí):\n1. Vào console.cloud.google.com → tạo Project mới (tên bất kỳ).\n2. Vào APIs & Services → Library → tìm “Blogger API v3” → bấm Enable.\n3. Vào OAuth consent screen: chọn External, điền tên ứng dụng + email của bạn, lưu. Sau đó bấm “Publish app” (nếu để chế độ Testing thì mã kết nối chỉ sống 7 ngày).\n4. Vào Credentials → Create credentials → OAuth client ID → Application type = Web application. Ở mục “Authorized redirect URIs” dán ĐÚNG địa chỉ trong khung xanh bên dưới → bấm Create.\n5. Sao chép Client ID và Client Secret vào 2 ô dưới, điền địa chỉ blog, rồi bấm nút “Kết nối với Blogger”.\nKhi Google cảnh báo “ứng dụng chưa được xác minh”, bấm Advanced → Continue (đây là ứng dụng do chính bạn tạo).",
+    "truong": [
+      {
+        "khoa": "dia_chi_blog",
+        "nhan": "Địa chỉ blog",
+        "bi_mat": false,
+        "bat_buoc": true,
+        "goi_y": "Ví dụ https://tenblog.blogspot.com"
+      },
+      {
+        "khoa": "client_id",
+        "nhan": "Client ID (bước 5)",
+        "bi_mat": false,
+        "bat_buoc": true,
+        "goi_y": "Dạng 1234-abc.apps.googleusercontent.com"
+      },
+      {
+        "khoa": "client_secret",
+        "nhan": "Client Secret (bước 5)",
+        "bi_mat": true,
+        "bat_buoc": true,
+        "goi_y": "Dạng GOCSPX-…"
+      },
+      {
+        "khoa": "ma_lam_moi",
+        "nhan": "Mã kết nối (nút bên dưới tự điền)",
+        "bi_mat": true,
+        "bat_buoc": true,
+        "goi_y": "Bấm nút Kết nối, đừng gõ tay"
+      }
+    ],
+    "lay_ma": {
+      "dia_chi_cho_phep": "https://accounts.google.com/o/oauth2/v2/auth?client_id={{truong.client_id}}&redirect_uri={{quay_ve}}&response_type=code&scope=https://www.googleapis.com/auth/blogger&access_type=offline&prompt=consent",
+      "dia_chi_doi_ma": "https://oauth2.googleapis.com/token",
+      "truong_can": [
+        "client_id",
+        "client_secret"
+      ],
+      "truong_ket_qua": {
+        "ma_lam_moi": "refresh_token"
+      }
+    },
+    "buoc_truoc": [
+      {
+        "ten": "ma_moi",
+        "mo_ta": "làm mới mã kết nối Google",
+        "phuong_thuc": "POST",
+        "dia_chi": "https://oauth2.googleapis.com/token",
+        "kieu_than": "form",
+        "than": {
+          "client_id": "{{truong.client_id}}",
+          "client_secret": "{{truong.client_secret}}",
+          "refresh_token": "{{truong.ma_lam_moi}}",
+          "grant_type": "refresh_token"
+        }
+      },
+      {
+        "ten": "blog",
+        "mo_ta": "tìm blog theo địa chỉ",
+        "phuong_thuc": "GET",
+        "dia_chi": "https://www.googleapis.com/blogger/v3/blogs/byurl?url={{truong.dia_chi_blog}}",
+        "tieu_de_http": {
+          "Authorization": "Bearer {{buoc.ma_moi.access_token}}"
+        }
+      }
+    ],
+    "gui": {
+      "phuong_thuc": "POST",
+      "dia_chi": "https://www.googleapis.com/blogger/v3/blogs/{{buoc.blog.id}}/posts",
+      "tieu_de_http": {
+        "Authorization": "Bearer {{buoc.ma_moi.access_token}}"
+      },
+      "kieu_than": "json",
+      "than": {
+        "kind": "blogger#post",
+        "title": "{{tieu_de}}",
+        "content": "{{noi_dung_html}}"
+      }
+    },
+    "ket_qua": {
+      "thanh_cong_khi": "id",
+      "duong_dan_bai": "{{phan_hoi.url}}",
+      "thong_bao_loi": "error.message"
+    },
+    "thu_tu": 6,
+    "goi_y_loi": {
+      "401": "Mã kết nối Google đã hết hiệu lực. Hãy bấm lại nút “Kết nối với Blogger” để lấy mã mới.",
+      "403": "Tài khoản Google này không có quyền đăng vào blog đó, hoặc chưa bật Blogger API v3 trong Google Cloud."
     }
+  },
+  {
+    "ten": "Instapaper",
+    "ten_khac": [
+      "insta paper",
+      "instapaper.com"
+    ],
+    "huong_dan": "Instapaper là chỗ lưu bài để đọc sau. Ứng dụng sẽ lưu ĐƯỜNG DẪN bài gốc vào tài khoản của bạn (không tạo bài đăng công khai, nên không có giá trị backlink).\n1. Vào instapaper.com và đăng nhập.\n2. Vào Settings → mục Password: đặt một mật khẩu (nhiều tài khoản Instapaper đăng nhập không cần mật khẩu, phải đặt thì mới kết nối được).\n3. Điền email đăng nhập và mật khẩu đó vào 2 ô bên dưới.",
+    "truong": [
+      {
+        "khoa": "tai_khoan",
+        "nhan": "Email đăng nhập Instapaper",
+        "bi_mat": false,
+        "bat_buoc": true,
+        "goi_y": "Email bạn dùng cho Instapaper"
+      },
+      {
+        "khoa": "mat_khau",
+        "nhan": "Mật khẩu Instapaper",
+        "bi_mat": true,
+        "bat_buoc": true,
+        "goi_y": "Mật khẩu đặt ở bước 2"
+      }
+    ],
+    "gui": {
+      "phuong_thuc": "POST",
+      "dia_chi": "https://www.instapaper.com/api/add",
+      "tieu_de_http": {
+        "Authorization": "Basic {{basic_auth:truong.tai_khoan|truong.mat_khau}}"
+      },
+      "kieu_than": "form",
+      "than": {
+        "url": "{{link_goc}}",
+        "title": "{{tieu_de}}",
+        "selection": "{{tom_tat}}"
+      }
+    },
+    "ket_qua": {
+      "thanh_cong_khi": "",
+      "duong_dan_bai": "{{dau_phan_hoi.content-location}}",
+      "thong_bao_loi": ""
+    },
+    "thu_tu": 7,
+    "goi_y_loi": {
+      "403": "Sai email hoặc mật khẩu Instapaper. Nhớ vào Settings của Instapaper đặt mật khẩu trước (tài khoản đăng nhập bằng email không có mật khẩu sẽ không kết nối được)."
+    }
+  },
+  {
+    "ten": "Facebook Page",
+    "ten_khac": [
+      "facebook",
+      "fb",
+      "fanpage",
+      "trang facebook",
+      "facebook fanpage"
+    ],
+    "huong_dan": "1. Vào developers.facebook.com, tạo một Ứng dụng (loại Business).\n2. Mở công cụ Graph API Explorer, chọn ứng dụng vừa tạo, xin quyền pages_manage_posts và pages_read_engagement.\n3. Ở mục 'User or Page' chọn đúng Fanpage của bạn để lấy Mã truy cập của Trang (Page Access Token).\n4. ID Trang: vào Fanpage → Giới thiệu → Minh bạch về Trang, hoặc xem trong Graph API Explorer.\nLưu ý: mã tạo nhanh chỉ sống vài giờ; nhờ bộ phận kỹ thuật đổi sang mã dài hạn nếu dùng lâu.",
+    "truong": [
+      {
+        "khoa": "page_id",
+        "nhan": "ID Trang (Page ID)",
+        "bi_mat": false,
+        "bat_buoc": true,
+        "goi_y": "Dãy số, ví dụ 102345678901234"
+      },
+      {
+        "khoa": "page_token",
+        "nhan": "Mã truy cập của Trang (Page Access Token)",
+        "bi_mat": true,
+        "bat_buoc": true,
+        "goi_y": "Dãy dài bắt đầu bằng EAA..."
+      }
+    ],
+    "gui": {
+      "phuong_thuc": "POST",
+      "dia_chi": "https://graph.facebook.com/{{truong.page_id}}/photos",
+      "tieu_de_http": {},
+      "kieu_than": "multipart",
+      "than": {
+        "message": "{{noi_dung}}",
+        "source": "{{anh_tep}}",
+        "access_token": "{{truong.page_token}}"
+      }
+    },
+    "ket_qua": {
+      "thanh_cong_khi": "",
+      "duong_dan_bai": "https://www.facebook.com/{{phan_hoi.post_id}}",
+      "thong_bao_loi": "error.message"
+    },
+    "thu_tu": 8
+  },
+  {
+    "ten": "Telegram",
+    "ten_khac": [
+      "tele",
+      "telegram bot",
+      "telegram channel",
+      "kênh telegram"
+    ],
+    "huong_dan": "1. Mở Telegram, tìm @BotFather, gõ /newbot rồi đặt tên cho bot.\n2. BotFather gửi lại một dãy mã dạng 123456:ABC... — đó là Mã bot, dán vào ô bên dưới.\n3. Muốn đăng lên kênh: thêm bot vào kênh và cho làm Quản trị viên. ID nơi nhận là @ten_kenh (kênh công khai).\n4. Muốn gửi cho chính mình: nhắn một tin bất kỳ cho bot, rồi dùng dãy số chat_id của bạn làm ID nơi nhận.",
+    "truong": [
+      {
+        "khoa": "bot_token",
+        "nhan": "Mã bot (Bot Token)",
+        "bi_mat": true,
+        "bat_buoc": true,
+        "goi_y": "Dạng 123456789:AAH..."
+      },
+      {
+        "khoa": "chat_id",
+        "nhan": "ID nơi nhận (kênh / nhóm / người)",
+        "bi_mat": false,
+        "bat_buoc": true,
+        "goi_y": "Ví dụ @kenh_cua_toi hoặc 123456789"
+      }
+    ],
+    "gui": {
+      "phuong_thuc": "POST",
+      "dia_chi": "https://api.telegram.org/bot{{truong.bot_token}}/sendPhoto",
+      "tieu_de_http": {},
+      "kieu_than": "multipart",
+      "than": {
+        "chat_id": "{{truong.chat_id}}",
+        "caption": "{{noi_dung}}",
+        "photo": "{{anh_tep}}"
+      }
+    },
+    "ket_qua": {
+      "thanh_cong_khi": "ok",
+      "duong_dan_bai": "https://t.me/{{phan_hoi.result.chat.username}}/{{phan_hoi.result.message_id}}",
+      "thong_bao_loi": "description"
+    },
+    "thu_tu": 9
+  },
+  {
+    "ten": "Webhook (Make / Zapier / n8n)",
+    "ten_khac": [
+      "webhook",
+      "make",
+      "make.com",
+      "zapier",
+      "n8n",
+      "integromat"
+    ],
+    "huong_dan": "Dùng cách này để nối với BẤT KỲ nền tảng nào (LinkedIn, X, Zalo OA, WordPress...):\n1. Vào Make.com (hoặc Zapier), tạo kịch bản mới, bước đầu chọn 'Webhooks → Custom webhook'.\n2. Sao chép đường dẫn webhook mà Make đưa cho bạn, dán vào ô bên dưới.\n3. Bấm 'Đăng' một lần để Make nhận mẫu dữ liệu (tieu_de, tom_tat, link_goc, anh_url, noi_dung).\n4. Trong Make, thêm bước đăng lên nền tảng bạn muốn và kéo các ô dữ liệu vào.",
+    "truong": [
+      {
+        "khoa": "dia_chi_webhook",
+        "nhan": "Đường dẫn Webhook",
+        "bi_mat": true,
+        "bat_buoc": true,
+        "goi_y": "Ví dụ https://hook.eu2.make.com/abc123..."
+      },
+      {
+        "khoa": "ma_bao_mat",
+        "nhan": "Mã bảo mật (nếu có)",
+        "bi_mat": true,
+        "bat_buoc": false,
+        "goi_y": "Để trống nếu webhook không yêu cầu"
+      }
+    ],
+    "gui": {
+      "phuong_thuc": "POST",
+      "dia_chi": "{{truong.dia_chi_webhook}}",
+      "tieu_de_http": {
+        "Authorization": "Bearer {{truong.ma_bao_mat}}"
+      },
+      "kieu_than": "json",
+      "than": {
+        "tieu_de": "{{tieu_de}}",
+        "tom_tat": "{{tom_tat}}",
+        "link_goc": "{{link_goc}}",
+        "anh_url": "{{anh_url}}",
+        "anh_base64": "{{anh_base64}}",
+        "noi_dung": "{{noi_dung}}"
+      }
+    },
+    "ket_qua": {
+      "thanh_cong_khi": "",
+      "duong_dan_bai": "{{phan_hoi.url}}",
+      "thong_bao_loi": ""
+    },
+    "thu_tu": 10
   }
 ]

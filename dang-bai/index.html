@@ -80,6 +80,9 @@
   .hop-dan-nho { font-size: 13.5px; color: var(--chu-phu); margin-top: 8px; }
   .hop-oauth { background: var(--xanh-nhat); border-radius: 10px; padding: 12px 14px; margin-top: 14px; font-size: 13.5px; }
   .hop-oauth .nut { margin-top: 8px; }
+  .chip-nen-tang { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 4px; }
+  .chip-nen-tang button { border: 1.5px solid var(--vien); background: #fff; border-radius: 99px; padding: 7px 14px; font-size: 13.5px; font-weight: 600; cursor: pointer; }
+  .chip-nen-tang button:hover { border-color: var(--xanh); color: var(--xanh); background: var(--xanh-nhat); }
   .xem-truoc { margin-top: 20px; border-top: 1px solid var(--vien); padding-top: 18px; }
   .xem-truoc h3 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--chu-phu); }
   .bai-dang { border: 1px solid var(--vien); border-radius: 12px; overflow: hidden; max-width: 520px; background: #fff; box-shadow: 0 1px 3px rgba(16,24,40,.06); }
@@ -221,7 +224,9 @@
       <p class="mo-ta-buoc">Bật công tắc ở những nơi muốn đăng.</p>
       <div class="ds-ket-noi" id="dsKetNoi"></div>
       <div class="them-moi">
-        <label class="nhan" for="oTenNenTang" style="margin-top:0">Bạn muốn kết nối với nền tảng nào?</label>
+        <div class="nhan" style="margin-top:0">Chọn nhanh nền tảng</div>
+        <div class="chip-nen-tang" id="dsNenTang"></div>
+        <label class="nhan" for="oTenNenTang">Hoặc gõ tên nền tảng khác</label>
         <form class="hang" id="formNenTang">
           <input type="text" id="oTenNenTang" placeholder="Gõ tên nền tảng bất kỳ…" autocomplete="off" required>
           <button class="nut phu" id="nutTaoBieuMau">Tạo biểu mẫu</button>
@@ -602,6 +607,17 @@ $("#formNenTang").onsubmit = async (ev) => {
   } finally { nut.disabled = false; }
 };
 
+async function taiDanhSachNenTang() {
+  try {
+    const ds = await goi("/danh-sach-nen-tang");
+    $("#dsNenTang").innerHTML = ds.map((n) => `<button type="button" data-nen="${esc(n.ten)}">${esc(n.ten)}</button>`).join("");
+    $("#dsNenTang").querySelectorAll("[data-nen]").forEach((n) => n.onclick = () => {
+      $("#oTenNenTang").value = n.dataset.nen;
+      $("#formNenTang").requestSubmit();
+    });
+  } catch {}
+}
+
 /* ---------------- Kết nối bằng cách bấm nút (OAuth, vd WordPress.com) ---------------- */
 const quayVe = () => location.origin + location.pathname;
 const dienMau = (mau, giaTri) => mau.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_, t) =>
@@ -640,8 +656,14 @@ async function xuLyOauthQuayVe() {
       dia_chi: lm.dia_chi_doi_ma, ma, quay_ve: qv,
       client_id: giaTri[lm.truong_can[0]], client_secret: giaTri[lm.truong_can[1]],
     });
-    const o = $("#vungBieuMau").querySelector(`input[data-khoa="${lm.truong_ket_qua}"]`);
-    o.value = kq.ma_truy_cap;
+    // truong_ket_qua: tên ô trong biểu mẫu ↔ tên trường trong phản hồi (vd ma_lam_moi ↔ refresh_token)
+    const cap = typeof lm.truong_ket_qua === "string" ? { [lm.truong_ket_qua]: "access_token" } : lm.truong_ket_qua;
+    let xong = 0;
+    for (const [khoa, nguon] of Object.entries(cap)) {
+      const o = $("#vungBieuMau").querySelector(`input[data-khoa="${khoa}"]`);
+      if (o && kq.ket_qua?.[nguon]) { o.value = kq.ket_qua[nguon]; xong++; }
+    }
+    if (!xong) throw new Error("Nền tảng chưa cấp mã dùng lâu dài. Hãy thử lại và nhớ bấm Cho phép (Allow).");
     hienTT($("#ttLuuKN"), "Đã lấy được mã kết nối. Bấm “Lưu kết nối” để hoàn tất.");
   } catch (e) { hienTT($("#ttLuuKN"), e.message, true); }
 }
@@ -785,6 +807,7 @@ async function khoiDong() {
     if (!tt.da_dang_nhap) return hienManKhoa("dang-nhap");
     trangThai.ai = tt.ai; trangThai.coGemini = tt.co_gemini; trangThai.coClaude = tt.co_claude; veAI();
     await taiKetNoi();
+    await taiDanhSachNenTang();
     await xuLyOauthQuayVe();
   } catch (e) {
     hienTT($("#ttLay"), "Không kết nối được với máy chủ: " + e.message, true);

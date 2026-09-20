@@ -249,7 +249,7 @@ async function guiMot(ketNoi, bai) {
   let thanhCong = ma >= 200 && ma < 300;
   if (thanhCong && kqCt.thanh_cong_khi && phanHoi && typeof phanHoi === "object") thanhCong = !!layTheoDuong(phanHoi, kqCt.thanh_cong_khi);
   if (!thanhCong) {
-    return { thanh_cong: false, ma_http: ma, loi: rutThongBaoLoi(phanHoi, kqCt.thong_bao_loi) || "(nền tảng không nói rõ lý do)", goi_y: loiAnh || goiYLoi(ma) };
+    return { thanh_cong: false, ma_http: ma, loi: rutThongBaoLoi(phanHoi, kqCt.thong_bao_loi) || "(nền tảng không nói rõ lý do)", goi_y: (ct.goi_y_loi || {})[String(ma)] || loiAnh || goiYLoi(ma) };
   }
   let duongDan = null;
   if (kqCt.duong_dan_bai) {

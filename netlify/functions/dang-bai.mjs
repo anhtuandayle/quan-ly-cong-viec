@@ -140,6 +140,13 @@ export default async (req) => {
     const goc = url.origin;
     let m;
 
+    // Danh sách nền tảng có công thức sẵn, để trang hiện các nút bấm nhanh
+    if (duong === "/danh-sach-nen-tang" && pt === "GET") {
+      const ds = (await thuVienCongThuc(goc)).map((ct) => ({ ten: ct.ten, thu_tu: ct.thu_tu ?? 99, co_lay_ma: !!ct.lay_ma }));
+      ds.sort((a, b) => a.thu_tu - b.thu_tu || a.ten.localeCompare(b.ten));
+      return traJson(ds);
+    }
+
     if (duong === "/ket-noi" && pt === "GET") {
       return traJson(((await kho.doc("ket-noi")) || []).map(ketNoiCongKhai));
     }
@@ -253,8 +260,8 @@ export default async (req) => {
         kq = await r.json().catch(() => ({}));
       } catch { return loi("Không kết nối được tới nền tảng."); }
       if (!r.ok) return loi(`Nền tảng không cấp mã kết nối (${r.status}). ${kq.error_description || kq.error || ""}`);
-      if (!kq.access_token) return loi("Nền tảng không trả về mã kết nối.");
-      return traJson({ ma_truy_cap: kq.access_token });
+      if (!kq.access_token && !kq.refresh_token) return loi("Nền tảng không trả về mã kết nối.");
+      return traJson({ ket_qua: kq, ma_truy_cap: kq.access_token || "" });
     }
 
     if (duong === "/cai-dat" && pt === "POST") {
