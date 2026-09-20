@@ -38,6 +38,13 @@ async function thuVienCongThuc(goc) {
   } catch { return []; }
 }
 
+async function thuVienQuyTac(goc) {
+  try {
+    const r = await fetch(`${goc}/dang-bai/quy-tac-doc.json`, { signal: AbortSignal.timeout(8000) });
+    return r.ok ? await r.json() : [];
+  } catch { return []; }
+}
+
 async function timCongThucMau(goc, ten) {
   const canTim = khongDau(ten);
   for (const ct of await thuVienCongThuc(goc)) {
@@ -153,7 +160,8 @@ export default async (req) => {
 
     if (duong === "/trich-xuat" && pt === "POST") {
       const batDau = Date.now();
-      const bai = await trichXuat(String(dl.url || ""), String(dl.noi_dung_dan || "").trim() || undefined);
+      const bai = await trichXuat(String(dl.url || ""), String(dl.noi_dung_dan || "").trim() || undefined,
+        await thuVienQuyTac(goc));
       const link = bai.link_goc;
       let nguon = "Tự động (trích câu chính)", canhBao = "", kqAI = null;
       const ai = aiDangDung(caiDat);
@@ -172,6 +180,12 @@ export default async (req) => {
         dong_cuoi: dongCuoi(link), gioi_han_bai: GIOI_HAN_BAI,
         nguon_tom_tat: nguon, canh_bao: canhBao, so_chu: bai.noi_dung.split(/\s+/).filter(Boolean).length,
       });
+    }
+
+    // Danh sách toàn bộ bài của một mục blog (theo quy tắc đọc của trang đó)
+    if (duong === "/danh-sach-bai" && pt === "POST") {
+      const { danhSachBai } = await import("../dang-bai/quy-tac-doc.mjs");
+      return traJson(await danhSachBai(await thuVienQuyTac(goc), String(dl.url || "").trim()));
     }
 
     if (duong === "/bieu-mau" && pt === "POST") {

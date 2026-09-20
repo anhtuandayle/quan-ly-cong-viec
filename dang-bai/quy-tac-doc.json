@@ -1,0 +1,42 @@
+[
+  {
+    "ten": "VCBS — Kiến thức cơ bản",
+    "khop": "^https?://(?:www\\.)?vcbs\\.com\\.vn/chi-tiet-kien-thuc-co-ban/([^/?#]+)",
+    "bai": {
+      "dia_chi": "https://www.vcbs.com.vn/api/v1/basic-knowledges/{{1}}?locale=vi",
+      "tieu_de": "data.title",
+      "mo_ta": "data.rawDescription",
+      "noi_dung_html": "data.content",
+      "anh": "data.thumbnail",
+      "goc": "https://www.vcbs.com.vn"
+    },
+    "danh_sach": {
+      "khop_trang": "^https?://(?:www\\.)?vcbs\\.com\\.vn/(kien-thuc-co-ban|chi-tiet-kien-thuc-co-ban)",
+      "dia_chi": "https://www.vcbs.com.vn/api/v1/basic-knowledges?limit=100&page={{trang}}&locale=vi",
+      "duong": "data",
+      "tieu_de": "title",
+      "link": "https://www.vcbs.com.vn/chi-tiet-kien-thuc-co-ban/{{slug}}",
+      "tong_trang": "meta.totalPages"
+    }
+  },
+  {
+    "ten": "VCBS — Tin tức & sự kiện",
+    "khop": "^https?://(?:www\\.)?vcbs\\.com\\.vn/chi-tiet-tin-tuc-va-su-kien/([^/?#]+)",
+    "bai": {
+      "dia_chi": "https://www.vcbs.com.vn/api/v1/news/{{1}}?locale=vi",
+      "tieu_de": "data.title",
+      "mo_ta": "data.rawDescription",
+      "noi_dung_html": "data.content",
+      "anh": "data.thumbnail",
+      "goc": "https://www.vcbs.com.vn"
+    },
+    "danh_sach": {
+      "khop_trang": "^https?://(?:www\\.)?vcbs\\.com\\.vn/(tin-tuc-va-su-kien-vcbs|chi-tiet-tin-tuc-va-su-kien)",
+      "dia_chi": "https://www.vcbs.com.vn/api/v1/news?limit=100&page={{trang}}&locale=vi",
+      "duong": "data",
+      "tieu_de": "title",
+      "link": "https://www.vcbs.com.vn/chi-tiet-tin-tuc-va-su-kien/{{slug}}",
+      "tong_trang": "meta.totalPages"
+    }
+  }
+]

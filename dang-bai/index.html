@@ -83,6 +83,13 @@
   .chip-nen-tang { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 4px; }
   .chip-nen-tang button { border: 1.5px solid var(--vien); background: #fff; border-radius: 99px; padding: 7px 14px; font-size: 13.5px; font-weight: 600; cursor: pointer; }
   .chip-nen-tang button:hover { border-color: var(--xanh); color: var(--xanh); background: var(--xanh-nhat); }
+  .ds-bai { margin-top: 12px; border: 1.5px solid var(--vien); border-radius: 12px; padding: 12px 14px; }
+  .ds-bai .dau { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-weight: 600; }
+  .ds-bai ul { list-style: none; margin: 8px 0 0; padding: 0; max-height: 280px; overflow: auto; }
+  .ds-bai li { border-top: 1px solid var(--vien); }
+  .ds-bai li button { width: 100%; text-align: left; background: none; border: 0; padding: 9px 4px; cursor: pointer; font-size: 14px; }
+  .ds-bai li button:hover { color: var(--xanh); background: var(--xanh-nhat); border-radius: 8px; }
+  .ds-bai input { margin-top: 8px; }
   .xem-truoc { margin-top: 20px; border-top: 1px solid var(--vien); padding-top: 18px; }
   .xem-truoc h3 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--chu-phu); }
   .bai-dang { border: 1px solid var(--vien); border-radius: 12px; overflow: hidden; max-width: 520px; background: #fff; box-shadow: 0 1px 3px rgba(16,24,40,.06); }
@@ -205,9 +212,11 @@
     <form class="o-link" id="formLink">
       <input type="url" id="oLink" placeholder="https://... (bài báo, blog, bài viết bất kỳ)" required autocomplete="off">
       <button class="nut" id="nutLay">Lấy bài</button>
+      <button class="nut phu" id="nutDanhSach" type="button" title="Lấy danh sách tất cả bài của mục này">Danh sách bài</button>
     </form>
     <div class="trang-thai" id="ttLay"></div>
     <div id="vungDanLoi"></div>
+    <div id="vungDanhSach"></div>
   </section>
 
   <div class="luoi">
@@ -402,6 +411,46 @@ $("#formLink").onsubmit = async (ev) => {
     hienTT($("#ttLay"), e.message, true);
     if (/^https?:\/\//.test(url)) hopDan($("#vungDanLoi"), false, url);
   } finally { nut.disabled = false; capNhatNutDang(); }
+};
+
+/* ---------------- Danh sách tất cả bài của một mục blog ---------------- */
+function veDanhSachBai(kq) {
+  const bai = kq.bai;
+  $("#vungDanhSach").innerHTML = `
+    <div class="ds-bai">
+      <div class="dau"><span>${esc(kq.ten_muc)} — ${bai.length} bài</span>
+        <button type="button" class="nut chu nho" id="dongDsBai">Đóng</button></div>
+      <input type="text" id="locDsBai" placeholder="Gõ để lọc theo tên bài…" autocomplete="off">
+      <ul id="dsBaiUl">${bai.map((b, i) => `<li><button type="button" data-i="${i}">${esc(b.tieu_de)}</button></li>`).join("")}</ul>
+      <div class="goi-y">Bấm vào tên bài để lấy bài đó. ${kq.tong_trang > 5 ? "Trang này còn nhiều bài hơn; danh sách lấy tối đa 300 bài mới nhất." : ""}</div>
+    </div>`;
+  $("#dongDsBai").onclick = () => ($("#vungDanhSach").innerHTML = "");
+  $("#locDsBai").oninput = (e) => {
+    const tim = gon(e.target.value).toLowerCase();
+    $("#dsBaiUl").querySelectorAll("li").forEach((li, i) => {
+      li.style.display = !tim || gon(bai[i].tieu_de).toLowerCase().includes(tim) ? "" : "none";
+    });
+  };
+  $("#dsBaiUl").querySelectorAll("button[data-i]").forEach((n) => n.onclick = () => {
+    $("#oLink").value = bai[n.dataset.i].link;
+    $("#formLink").requestSubmit();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+}
+$("#nutDanhSach").onclick = async () => {
+  const url = $("#oLink").value.trim();
+  if (!url) return hienTT($("#ttLay"), "Hãy dán địa chỉ mục blog (hoặc một bài bất kỳ của mục đó) trước.", true);
+  const nut = $("#nutDanhSach");
+  nut.disabled = true;
+  hienTT($("#ttLay"), "Đang lấy danh sách bài…", false, true);
+  try {
+    const kq = await goi("/danh-sach-bai", "POST", { url });
+    hienTT($("#ttLay"), `Mục “${kq.ten_muc}” có ${kq.bai.length} bài — bấm tên bài để soạn.`);
+    veDanhSachBai(kq);
+  } catch (e) {
+    hienTT($("#ttLay"), e.message, true);
+    $("#vungDanhSach").innerHTML = "";
+  } finally { nut.disabled = false; }
 };
 
 /* ---------------- Bước 3: xem trước & chỉnh sửa ---------------- */

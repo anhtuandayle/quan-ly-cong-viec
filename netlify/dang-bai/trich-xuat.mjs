@@ -109,10 +109,15 @@ async function tuNoiDungDan(url, vanBan) {
 
 // Đọc bài: tải bình thường trước; nếu trang gần như rỗng thì mở lại bằng trình duyệt ảo.
 // Người dùng cũng có thể tự dán nội dung bài (noiDungDan) khi máy không đọc được.
-export async function trichXuat(url, noiDungDan) {
+export async function trichXuat(url, noiDungDan, quyTac) {
   url = (url || "").trim();
   if (!/^https?:\/\//i.test(url)) throw new LoiNguoiDung("Đường dẫn phải bắt đầu bằng http:// hoặc https://");
   if (noiDungDan) return tuNoiDungDan(url, noiDungDan);
+  if (quyTac?.length) {
+    const { docBai } = await import("./quy-tac-doc.mjs");
+    const theoQuyTac = await docBai(quyTac, url);
+    if (theoQuyTac && theoQuyTac.noi_dung.length >= 200) return theoQuyTac;
+  }
   let { kq, loiTai, urlCuoi } = await docNhanh(url);
   if (kq && kq.noi_dung.length >= 400) return { ...kq, cach_doc: "Đọc trực tiếp" };
   try {
