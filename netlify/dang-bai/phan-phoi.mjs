@@ -11,6 +11,7 @@
 // theo định dạng "little text" của LinkedIn), {{basic_auth:truong.a|truong.b}} (đăng nhập kiểu Basic).
 import { TRINH_DUYET, doDai } from "./trich-xuat.mjs";
 
+const escHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#x27;" }[c]));
 const BIEN = /\{\{\s*([\w.:|-]+)\s*\}\}/g;
 const MOT_BIEN = /^\{\{\s*[\w.:|-]+\s*\}\}$/;
 const KY_TU_LITTLE = /([\\|{}@[\]()<>#*_~])/g;
@@ -33,6 +34,7 @@ function apBoLoc(v, boLoc) {
   for (const loc of boLoc) {
     const m = loc.match(/^cat:(\d+)$/);
     if (m && doDai(v) > Number(m[1])) v = [...v.normalize("NFC")].slice(0, Number(m[1]) - 1).join("").trimEnd() + "…";
+    else if (loc === "html") v = escHtml(v);
     else if (loc === "mien") v = v.replace(/^https?:\/\//, "").split("/")[0]; // "https://abc.com/x" -> "abc.com"
     else if (loc === "little") v = v.replace(KY_TU_LITTLE, "\\$1");
   }
@@ -58,7 +60,8 @@ export function dien(mau, bien, trongDiaChi = false) {
     if (trongDiaChi && !chiMotBien) v = encodeURIComponent(v).replace(/%3A/gi, ":").replace(/%40/gi, "@");
     return v;
   });
-  return [kq, rong];
+  // không có ảnh thì bỏ hẳn thẻ ảnh rỗng và đoạn rỗng còn lại
+  return [kq.replace(/<img[^>]*src=""[^>]*>/g, "").replace(/<p>\s*<\/p>\s*/g, ""), rong];
 }
 
 function dienCauTruc(nut, bien) {
@@ -115,11 +118,10 @@ function rutThongBaoLoi(phanHoi, duongLoi) {
   return "";
 }
 
-const escHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#x27;" }[c]));
 
 // Bản HTML của bài (cho WordPress, Blogger…): ảnh ở đầu, mỗi đoạn 1 thẻ <p>, link gốc bấm được
-function noiDungHtml(noiDung, link, anhUrl, tieuDe) {
-  const phan = anhUrl ? [`<p><img src="${escHtml(anhUrl)}" alt="${escHtml(tieuDe)}"></p>`] : [];
+function noiDungHtml(noiDung, link, anhUrl, tieuDe, rongAnh = 800) {
+  const phan = anhUrl ? [`<p><img src="${escHtml(anhUrl)}" width="${rongAnh}" alt="${escHtml(tieuDe)}"></p>`] : [];
   const dl = escHtml(link);
   for (const doan of noiDung.split("\n\n")) {
     const d = escHtml(doan).replace(/\n/g, "<br>");
@@ -233,6 +235,7 @@ async function guiMot(ketNoi, bai) {
     buoc: {},
   };
   bien.noi_dung_html = noiDungHtml(noiDung, bai.link_goc, bien.anh_url, bai.tieu_de);
+  bien.noi_dung_html_chu = noiDungHtml(noiDung, bai.link_goc, "", bai.tieu_de); // bản không kèm ảnh
 
   let anh = null, loiAnh = "";
   if (dungBien(ct, "anh_tep") || dungBien(ct, "anh_base64") || dungBien(ct, "anh_kieu")) {

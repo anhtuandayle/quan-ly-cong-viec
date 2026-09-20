@@ -56,9 +56,9 @@
       "kieu_than": "form",
       "than": {
         "title": "{{tieu_de}}",
-        "content": "{{noi_dung_html}}",
-        "status": "publish",
-        "media_urls[]": "{{anh_url}}"
+        "content": "<p><img src=\"{{buoc.anh.media.0.URL}}\" width=\"800\" alt=\"{{tieu_de|html}}\"></p>\n{{noi_dung_html_chu}}",
+        "excerpt": "{{tom_tat}}",
+        "status": "publish"
       }
     },
     "ket_qua": {
@@ -66,7 +66,27 @@
       "duong_dan_bai": "{{phan_hoi.URL}}",
       "thong_bao_loi": "message"
     },
-    "thu_tu": 1
+    "thu_tu": 1,
+    "buoc_truoc": [
+      {
+        "ten": "anh",
+        "mo_ta": "tải ảnh lên thư viện WordPress",
+        "phuong_thuc": "POST",
+        "dia_chi": "https://public-api.wordpress.com/rest/v1.1/sites/{{truong.dia_chi_trang|mien}}/media/new",
+        "tieu_de_http": {
+          "Authorization": "Bearer {{truong.ma_truy_cap}}"
+        },
+        "kieu_than": "multipart",
+        "than": {
+          "media[]": "{{anh_tep}}",
+          "attrs[0][alt]": "{{tieu_de}}"
+        },
+        "bo_qua_neu_loi": true
+      }
+    ],
+    "goi_y_loi": {
+      "403": "Mã kết nối không có quyền đăng vào blog này. Hãy bấm lại nút “Kết nối với WordPress.com”."
+    }
   },
   {
     "ten": "WordPress (tự cài)",
