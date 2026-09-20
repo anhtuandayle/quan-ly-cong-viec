@@ -8,8 +8,9 @@ import { catTheoCau, nganSach } from "./bai-dang.mjs";
 
 const MO_HINH_CLAUDE = "claude-opus-5";
 const GEMINI_GOC = process.env.GEMINI_GOC || "https://generativelanguage.googleapis.com";
-// Thử lần lượt: mô hình nào hết lượt miễn phí / không có thì chuyển sang mô hình kế tiếp
-const MO_HINH_GEMINI = ["gemini-3.5-flash", "gemini-2.5-flash", "gemini-2.5-flash-lite"];
+// Thử lần lượt các mẫu này; nếu đều không khớp thì hỏi Google xem chìa khoá dùng được mẫu nào
+const MO_HINH_GEMINI = ["gemini-3.5-flash", "gemini-3.8-flash", "gemini-2.5-flash"];
+const API_REVISION = "2026-05-20"; // cổng interactions yêu cầu ghi rõ đời API
 
 export class LoiAI extends Error {}
 
@@ -29,44 +30,98 @@ function schemaGemini(s) {
   return kq;
 }
 
-async function goiGemini(chiaKhoa, loiNhac, schema, hanChot) {
-  const than = JSON.stringify({
-    contents: [{ role: "user", parts: [{ text: loiNhac }] }],
-    generationConfig: { responseMimeType: "application/json", responseSchema: schemaGemini(schema) },
-  });
-  let loiCuoi = "Gemini không trả lời.";
-  for (const moHinh of MO_HINH_GEMINI) {
-    const conLai = hanChot - Date.now();
-    if (conLai < 5000) { loiCuoi = "Hết thời gian chờ AI."; break; }
-    let r;
-    try {
-      r = await fetch(`${GEMINI_GOC}/v1beta/models/${moHinh}:generateContent`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-goog-api-key": chiaKhoa },
-        body: than,
-        signal: AbortSignal.timeout(conLai),
-      });
-    } catch (e) {
-      throw new LoiAI(e.name === "TimeoutError" ? "Gemini trả lời quá lâu, thử lại lần nữa nhé." : "Không kết nối được tới Gemini.");
-    }
-    const kq = await r.json().catch(() => ({}));
-    if (!r.ok) {
-      const thongBao = kq.error?.message || "";
-      if (r.status === 400 && /api key/i.test(thongBao)) throw new LoiAI("Chìa khoá Gemini không đúng. Vào Cài đặt để dán lại.");
-      if (r.status === 403) throw new LoiAI("Chìa khoá Gemini không có quyền (hãy tạo chìa khoá mới trong Google AI Studio).");
-      if ([404, 429, 500, 503].includes(r.status)) { // mô hình không có / hết lượt miễn phí / quá tải → thử mô hình khác
-        loiCuoi = r.status === 429 ? "Đã hết lượt Gemini miễn phí (theo phút hoặc theo ngày). Đợi một lúc rồi thử lại." : `Gemini báo lỗi ${r.status}.`;
-        continue;
-      }
-      throw new LoiAI(`Gemini báo lỗi ${r.status}: ${thongBao.slice(0, 200)}`);
-    }
-    if (kq.promptFeedback?.blockReason) throw new LoiAI("Gemini từ chối xử lý bài này.");
-    const ungVien = kq.candidates?.[0] || {};
-    const vanBan = (ungVien.content?.parts || []).filter((p) => !p.thought).map((p) => p.text || "").join("");
-    if (!vanBan.trim()) { loiCuoi = `Gemini không trả lời (${ungVien.finishReason || "không rõ lý do"}).`; continue; }
-    try { return JSON.parse(vanBan); } catch { loiCuoi = "Gemini trả lời sai định dạng."; }
+// Gửi 1 yêu cầu tới Gemini. Trả về { kq, ma, thongBao }
+async function guiGemini(chiaKhoa, duong, than, phuongThuc = "POST", hanChot = Date.now() + 50_000) {
+  let r;
+  try {
+    r = await fetch(GEMINI_GOC + duong, {
+      method: phuongThuc,
+      headers: { "Content-Type": "application/json", "x-goog-api-key": chiaKhoa, "Api-Revision": API_REVISION },
+      body: than == null ? undefined : JSON.stringify(than),
+      signal: AbortSignal.timeout(Math.max(5000, hanChot - Date.now())),
+    });
+  } catch (e) {
+    throw new LoiAI(e.name === "TimeoutError" ? "Gemini trả lời quá lâu, thử lại lần nữa nhé." : "Không kết nối được tới Gemini.");
   }
-  throw new LoiAI(loiCuoi);
+  let kq = await r.json().catch(() => ({}));
+  if (Array.isArray(kq)) kq = kq[0] || {};
+  if (!r.ok) return { kq: null, ma: r.status, thongBao: kq.error?.message || "" };
+  return { kq, ma: 0, thongBao: "" };
+}
+
+// Lấy phần chữ trong câu trả lời của cổng interactions
+function chuTuInteractions(kq) {
+  if (kq.output_text) return kq.output_text;
+  const chu = [];
+  for (const buoc of kq.steps || []) {
+    if (buoc.type == null || buoc.type === "model_output") {
+      for (const phan of buoc.content || []) if (phan.type === "text" && phan.text) chu.push(phan.text);
+    }
+  }
+  return chu.join("");
+}
+
+// Lấy phần chữ trong câu trả lời của cổng cũ generateContent
+const chuTuGenerate = (kq) => (kq.candidates?.[0]?.content?.parts || []).filter((p) => !p.thought).map((p) => p.text || "").join("");
+
+// Thử 1 mẫu AI: cổng mới trước, chìa khoá cũ thì lùi về cổng cũ. Trả về { kq, bao }
+async function thuMotMoHinh(chiaKhoa, moHinh, loiNhac, schema, hanChot) {
+  let { kq, ma, thongBao } = await guiGemini(chiaKhoa, "/v1beta/interactions", {
+    model: moHinh,
+    input: loiNhac,
+    response_format: { type: "text", mime_type: "application/json", schema: schemaGemini(schema) },
+  }, "POST", hanChot);
+  if (kq === null && (ma === 400 || ma === 404)) { // cổng mới không nhận → thử cổng cũ
+    const cu = await guiGemini(chiaKhoa, `/v1beta/models/${moHinh}:generateContent`, {
+      contents: [{ role: "user", parts: [{ text: loiNhac }] }],
+      generationConfig: { responseMimeType: "application/json", responseSchema: schemaGemini(schema) },
+    }, "POST", hanChot);
+    if (cu.kq !== null) {
+      const vanBan = chuTuGenerate(cu.kq);
+      if (!vanBan.trim()) return { kq: null, bao: `mẫu ${moHinh}: Gemini trả lời trống.` };
+      try { return { kq: JSON.parse(vanBan), bao: "" }; }
+      catch { return { kq: null, bao: `mẫu ${moHinh}: Gemini trả lời sai định dạng.` }; }
+    }
+    ma = cu.ma || ma;
+    thongBao = cu.thongBao || thongBao;
+  }
+  if (kq === null) {
+    if (ma === 401 || (ma === 400 && /api key/i.test(thongBao))) throw new LoiAI("Chìa khoá Gemini không đúng. Vào Cài đặt để dán lại.");
+    if (ma === 403) throw new LoiAI("Chìa khoá Gemini không có quyền (hãy tạo chìa khoá mới trong Google AI Studio).");
+    if (ma === 429) throw new LoiAI("Đã hết lượt Gemini miễn phí (theo phút hoặc theo ngày). Đợi một lúc rồi thử lại.");
+    return { kq: null, bao: `mẫu ${moHinh}: lỗi ${ma}${thongBao ? " — " + thongBao.slice(0, 120) : ""}` };
+  }
+  if (kq.status === "failed" || kq.status === "cancelled") return { kq: null, bao: `mẫu ${moHinh}: Gemini bỏ dở câu trả lời.` };
+  const vanBan = chuTuInteractions(kq);
+  if (!vanBan.trim()) return { kq: null, bao: `mẫu ${moHinh}: Gemini trả lời trống.` };
+  try { return { kq: JSON.parse(vanBan), bao: "" }; }
+  catch { return { kq: null, bao: `mẫu ${moHinh}: Gemini trả lời sai định dạng.` }; }
+}
+
+// Hỏi Google xem chìa khoá này dùng được những mẫu nào (ưu tiên các mẫu Flash)
+async function moHinhCuaChiaKhoa(chiaKhoa, hanChot) {
+  const { kq } = await guiGemini(chiaKhoa, "/v1beta/models?pageSize=200", null, "GET", hanChot);
+  const ten = (kq?.models || []).map((m) => String(m.name || "").split("/").pop());
+  const flash = ten.filter((t) => t.includes("flash") && !/embed|image|tts/.test(t));
+  flash.sort((a, b) => (a.includes("lite") - b.includes("lite")) || (a.includes("preview") - b.includes("preview")) || a.localeCompare(b));
+  return flash.length ? flash : ten;
+}
+
+async function goiGemini(chiaKhoa, loiNhac, schema, hanChot) {
+  const daThu = [], loi = [];
+  for (let vong = 0; vong < 2; vong++) {
+    const danhSach = vong === 0 ? MO_HINH_GEMINI
+      : (await moHinhCuaChiaKhoa(chiaKhoa, hanChot)).filter((t) => !daThu.includes(t)).slice(0, 3);
+    if (!danhSach.length) break;
+    for (const moHinh of danhSach) {
+      if (hanChot - Date.now() < 5000) break;
+      daThu.push(moHinh);
+      const { kq, bao } = await thuMotMoHinh(chiaKhoa, moHinh, loiNhac, schema, hanChot);
+      if (kq !== null) return kq;
+      loi.push(bao);
+    }
+  }
+  throw new LoiAI("Gemini chưa trả lời được. " + loi.filter(Boolean).join("; ").slice(0, 300));
 }
 
 async function goiClaude(chiaKhoa, loiNhac, schema, effort, hanChot) {
