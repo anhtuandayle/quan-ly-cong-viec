@@ -72,13 +72,22 @@ function kiemTraCongThuc(ct) {
   }
 }
 
+// Danh sách dự án: gồm dự án đã tạo trong cài đặt và dự án đang gắn với kết nối nào đó
+async function danhSachDuAn(kho) {
+  const ds = [...(((await kho.doc("cai-dat")) || {}).du_an || [])];
+  for (const kn of (await kho.doc("ket-noi")) || []) {
+    if (kn.du_an && !ds.includes(kn.du_an)) ds.push(kn.du_an);
+  }
+  return ds.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+}
+
 const che = (v) => (v.length > 8 ? "••••" + v.slice(-4) : "••••");
 function ketNoiCongKhai(kn) {
   const ct = kn.cong_thuc;
   let mayChu = "(địa chỉ bạn nhập)";
   try { mayChu = new URL(dien(ct.gui.dia_chi, { truong: kn.gia_tri }, true)[0]).host || mayChu; } catch {}
   return {
-    id: kn.id, ten: kn.ten, bat: kn.bat, may_chu: mayChu, nguon: ct.nguon || "",
+    id: kn.id, ten: kn.ten, bat: kn.bat, du_an: kn.du_an || "", may_chu: mayChu, nguon: ct.nguon || "",
     truong: (ct.truong || []).map((t) => {
       const v = kn.gia_tri[t.khoa] || "";
       return { nhan: t.nhan, gia_tri: t.bi_mat && v ? che(v) : v };
@@ -154,6 +163,41 @@ export default async (req) => {
       return traJson(ds);
     }
 
+    // Dự án: mỗi kết nối thuộc một dự án; chọn dự án nào thì chỉ đăng lên kênh của dự án đó
+    if (duong === "/du-an" && pt === "GET") {
+      return traJson(await danhSachDuAn(kho));
+    }
+
+    if (duong === "/du-an" && pt === "POST") {
+      const ten = chuanHoa(dl.ten || "");
+      if (!ten) return loi("Hãy đặt tên cho dự án.");
+      if (ten.length > 60) return loi("Tên dự án quá dài.");
+      const ds = [...(caiDat.du_an || [])];
+      if (ds.some((x) => x.toLowerCase() === ten.toLowerCase())) return loi(`Dự án “${ten}” đã có rồi.`);
+      ds.push(ten);
+      caiDat.du_an = ds;
+      await kho.ghi("cai-dat", caiDat);
+      return traJson({ ds: await danhSachDuAn(kho) });
+    }
+
+    // Xoá dự án khỏi danh sách; kết nối của dự án đó trở về "chưa xếp dự án" (không bị xoá)
+    if (duong === "/du-an-xoa" && pt === "POST") {
+      const ten = chuanHoa(dl.ten || "");
+      caiDat.du_an = (caiDat.du_an || []).filter((x) => x.toLowerCase() !== ten.toLowerCase());
+      await kho.ghi("cai-dat", caiDat);
+      const ds = (await kho.doc("ket-noi")) || [];
+      for (const kn of ds) if ((kn.du_an || "").toLowerCase() === ten.toLowerCase()) kn.du_an = "";
+      await kho.ghi("ket-noi", ds);
+      return traJson({ ds: await danhSachDuAn(kho) });
+    }
+
+    if ((m = duong.match(/^\/ket-noi\/([\w-]+)\/du-an$/)) && pt === "POST") {
+      const ds = (await kho.doc("ket-noi")) || [];
+      for (const kn of ds) if (kn.id === m[1]) kn.du_an = chuanHoa(dl.du_an || "");
+      await kho.ghi("ket-noi", ds);
+      return traJson({ ok: true });
+    }
+
     if (duong === "/ket-noi" && pt === "GET") {
       return traJson(((await kho.doc("ket-noi")) || []).map(ketNoiCongKhai));
     }
@@ -209,7 +253,8 @@ export default async (req) => {
       const giaTri = Object.fromEntries(Object.entries(dl.gia_tri || {}).map(([k, v]) => [k, String(v).trim()]));
       const thieu = (ct.truong || []).filter((t) => t.bat_buoc !== false && !giaTri[t.khoa]).map((t) => t.nhan);
       if (thieu.length) return loi("Còn thiếu: " + thieu.join(", "));
-      const kn = { id: randomUUID().slice(0, 10), ten: chuanHoa(dl.ten || ct.ten || "Nền tảng"), bat: true, cong_thuc: ct, gia_tri: giaTri };
+      const kn = { id: randomUUID().slice(0, 10), ten: chuanHoa(dl.ten || ct.ten || "Nền tảng"), bat: true,
+        du_an: chuanHoa(dl.du_an || ""), cong_thuc: ct, gia_tri: giaTri };
       const ds = (await kho.doc("ket-noi")) || [];
       ds.push(kn);
       await kho.ghi("ket-noi", ds);
@@ -250,8 +295,9 @@ export default async (req) => {
         const t = String(dl[`than_${l}`] || "").replace(/\r/g, "").normalize("NFC").trim() || than;
         bai[`bai_${l}`] = ghepBai(catTheoCau(t, nganSach(l, bai.link_goc)), bai.link_goc);
       }
-      const dangBat = ((await kho.doc("ket-noi")) || []).filter((kn) => kn.bat);
-      if (!dangBat.length) return loi("Chưa bật nền tảng nào để đăng.");
+      const duAn = chuanHoa(dl.du_an || "");
+      const dangBat = ((await kho.doc("ket-noi")) || []).filter((kn) => kn.bat && (!duAn || (kn.du_an || "") === duAn));
+      if (!dangBat.length) return loi(`Chưa bật nền tảng nào để đăng${duAn ? ` trong dự án “${duAn}”` : ""}.`);
       return traJson({ ket_qua: await Promise.all(dangBat.map((kn) => guiAnToan(kn, bai))) });
     }
 
@@ -279,10 +325,16 @@ export default async (req) => {
     }
 
     if (duong === "/cai-dat" && pt === "POST") {
-      for (const [loai, dau, ten] of [["gemini", "AIza", "Gemini"], ["claude", "sk-ant-", "Claude"]]) {
+      for (const [loai, ten, cuaBenKia] of [["gemini", "Gemini", "sk-ant-"], ["claude", "Claude", "AQ."]]) {
         if (!(`chia_khoa_${loai}` in dl)) continue;
         const khoa = String(dl[`chia_khoa_${loai}`] || "").trim();
-        if (khoa && !khoa.startsWith(dau)) return loi(`Chìa khoá ${ten} thường bắt đầu bằng ${dau}… Anh/chị kiểm tra lại nhé.`);
+        if (khoa) {
+          // Không đoán định dạng (Google đã đổi AIza… → AQ.…), chỉ chặn khi dán nhầm ô
+          if (khoa.startsWith(cuaBenKia) || (loai === "claude" && khoa.startsWith("AIza"))) {
+            return loi(`Đây không phải chìa khoá ${ten} — anh/chị dán nhầm ô rồi.`);
+          }
+          if (khoa.length < 20 || khoa.includes(" ")) return loi(`Chìa khoá ${ten} trông chưa đúng (quá ngắn hoặc có dấu cách).`);
+        }
         caiDat[`chia_khoa_${loai}`] = khoa;
       }
       await kho.ghi("cai-dat", caiDat);

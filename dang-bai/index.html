@@ -97,6 +97,13 @@
   .hang-doi .dau { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-weight: 700; }
   .hang-doi table { margin-top: 8px; }
   .hang-doi td:first-child { max-width: 320px; }
+  .hang-du-an { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+  .hang-du-an label { font-weight: 600; font-size: 13.5px; }
+  .hang-du-an select, .kn select { border: 1.5px solid var(--vien); border-radius: 10px; padding: 8px 10px; background: #fff; font: inherit; }
+  .hang-du-an select { min-width: 190px; font-weight: 600; }
+  .kn select { padding: 4px 8px; font-size: 12.5px; margin-top: 6px; max-width: 100%; }
+  .hop-nhieu-link { margin-top: 12px; border: 1.5px solid var(--vien); border-radius: 12px; padding: 12px 14px; }
+  .hop-nhieu-link textarea { margin: 8px 0; font-size: 13.5px; min-height: 110px; }
   .xem-truoc { margin-top: 20px; border-top: 1px solid var(--vien); padding-top: 18px; }
   .xem-truoc h3 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--chu-phu); }
   .bai-dang { border: 1px solid var(--vien); border-radius: 12px; overflow: hidden; max-width: 520px; background: #fff; box-shadow: 0 1px 3px rgba(16,24,40,.06); }
@@ -220,9 +227,11 @@
       <input type="url" id="oLink" placeholder="https://... (bài báo, blog, bài viết bất kỳ)" required autocomplete="off">
       <button class="nut" id="nutLay">Lấy bài</button>
       <button class="nut phu" id="nutDanhSach" type="button" title="Lấy danh sách tất cả bài của mục này">Danh sách bài</button>
+      <button class="nut phu" id="nutNhieuLink" type="button" title="Dán nhiều đường dẫn, mỗi dòng một bài">Dán nhiều link</button>
     </form>
     <div class="trang-thai" id="ttLay"></div>
     <div id="vungDanLoi"></div>
+    <div id="vungNhieuLink"></div>
     <div id="vungDanhSach"></div>
   </section>
 
@@ -238,6 +247,13 @@
     <section class="the">
       <h2 class="buoc"><span class="so">2</span>Nơi đăng bài</h2>
       <p class="mo-ta-buoc">Bật công tắc ở những nơi muốn đăng.</p>
+      <div class="hang-du-an">
+        <label for="chonDuAn">Dự án</label>
+        <select id="chonDuAn"></select>
+        <button type="button" class="nut phu nho" id="nutThemDuAn">+ Dự án mới</button>
+        <button type="button" class="nut chu nho" id="nutXoaDuAn" title="Xoá dự án đang chọn khỏi danh sách">Xoá dự án</button>
+      </div>
+      <div class="goi-y" id="ghiDuAn"></div>
       <div class="ds-ket-noi" id="dsKetNoi"></div>
       <div class="them-moi">
         <div class="nhan" style="margin-top:0">Chọn nhanh nền tảng</div>
@@ -272,10 +288,10 @@
     <b>① Gemini của Google — MIỄN PHÍ (khuyên dùng)</b>
     <ol>
       <li>Vào <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>, đăng nhập bằng Gmail.</li>
-      <li>Bấm <b>Create API key</b> (Tạo khoá API) → sao chép dãy bắt đầu bằng <b>AIza…</b></li>
+      <li>Bấm <b>Create API key</b> (Tạo khoá API) → bấm <b>Copy key</b> để sao chép cả dãy (dạng <b>AQ.…</b> hoặc <b>AIza…</b>)</li>
       <li>Dán vào ô dưới rồi bấm Lưu. Không cần thẻ ngân hàng.</li>
     </ol>
-    <input type="password" id="oGemini" placeholder="AIza..." autocomplete="off" aria-label="Chìa khoá Gemini">
+    <input type="password" id="oGemini" placeholder="AQ.… hoặc AIza…" autocomplete="off" aria-label="Chìa khoá Gemini">
     <div class="goi-y" id="ghiGemini"></div>
   </div>
   <details class="hop-ai">
@@ -421,6 +437,35 @@ $("#formLink").onsubmit = async (ev) => {
   } finally { nut.disabled = false; capNhatNutDang(); }
 };
 
+/* ---------------- Dán nhiều link: mỗi dòng 1 bài ---------------- */
+$("#nutNhieuLink").onclick = () => {
+  if ($("#vungNhieuLink").innerHTML) return ($("#vungNhieuLink").innerHTML = "");
+  $("#vungNhieuLink").innerHTML = `
+    <div class="hop-nhieu-link">
+      <b>Dán nhiều đường dẫn</b> — mỗi dòng một bài viết.
+      <textarea id="oNhieuLink" placeholder="https://trang-a.com/bai-1&#10;https://trang-b.com/bai-2&#10;https://trang-c.com/bai-3"></textarea>
+      <button type="button" class="nut phu nho" id="nutThemNhieuLink">Đưa vào danh sách</button>
+      <button type="button" class="nut chu nho" id="nutDongNhieuLink">Đóng</button>
+      <div class="trang-thai" id="ttNhieuLink"></div>
+    </div>`;
+  $("#nutDongNhieuLink").onclick = () => ($("#vungNhieuLink").innerHTML = "");
+  $("#nutThemNhieuLink").onclick = () => {
+    const dong = $("#oNhieuLink").value.split(/[\n\r]+/).map((d) => d.trim()).filter(Boolean);
+    const hop = [], xau = [], daCo = new Set();
+    for (const d of dong) {
+      if (!/^https?:\/\/\S+$/i.test(d)) { xau.push(d); continue; }
+      if (daCo.has(d)) continue;
+      daCo.add(d);
+      hop.push({ tieu_de: d.replace(/^https?:\/\/(www\.)?/, ""), link: d });
+    }
+    if (!hop.length) return hienTT($("#ttNhieuLink"), "Chưa có đường dẫn hợp lệ nào (phải bắt đầu bằng http:// hoặc https://).", true);
+    veDanhSachBai({ ten_muc: "Danh sách anh/chị tự dán", tong_trang: 1, bai: hop });
+    hienTT($("#ttLay"), `Đã đưa ${hop.length} đường dẫn vào danh sách${xau.length ? ` (bỏ qua ${xau.length} dòng không phải đường dẫn)` : ""} — tích chọn rồi bấm “Đăng hàng loạt”.`);
+    $("#vungNhieuLink").innerHTML = "";
+    $("#vungDanhSach").scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+};
+
 /* ---------------- Đăng hàng loạt: chạy cuốn chiếu từng bài ---------------- */
 const NGHI_GIUA_BAI = 4000; // nghỉ 4 giây giữa 2 bài cho nhẹ nền tảng
 const doiMs = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -456,8 +501,8 @@ function veHangDoi() {
 }
 
 async function batDauHangDoi(ds) {
-  const noiDang = trangThai.ketNoi.filter((k) => k.bat);
-  if (!noiDang.length) return hienTT($("#ttLay"), "Chưa bật nơi đăng nào ở bước 2.", true);
+  const noiDang = trangThai.ketNoi.filter((k) => k.bat && (!trangThai.duAn || k.du_an === trangThai.duAn));
+  if (!noiDang.length) return hienTT($("#ttLay"), "Chưa bật nơi đăng nào cho dự án đang chọn.", true);
   if (ds.length > 50) return hienTT($("#ttLay"), "Mỗi lần chỉ nên đăng tối đa 50 bài. Hãy bớt bài đã chọn.", true);
   const loai = trangThai.bai?.loai_bai || "ngan";
   const ten = loai === "ngan" ? "bài ngắn" : "bài dài";
@@ -471,11 +516,12 @@ async function batDauHangDoi(ds) {
     try {
       m.tt = "soan"; veHangDoi();
       const bai = await goi("/trich-xuat", "POST", { url: m.link });
+      if (bai.tieu_de) m.tieu_de = bai.tieu_de; // thay đường dẫn bằng tiêu đề thật
       const than = (l) => (bai["bai_" + l] || "").replace(/\r/g, "").trim();
       m.tt = "dang"; veHangDoi();
       const kq = await goi("/dang-bai", "POST", {
         tieu_de: gon(bai.tieu_de), tom_tat: gon(bai.tom_tat), link_goc: bai.link_goc, anh_url: bai.anh_url,
-        loai_bai: loai, than_bai: than(loai), than_ngan: than("ngan"), than_dai: than("dai"),
+        loai_bai: loai, than_bai: than(loai), than_ngan: than("ngan"), than_dai: than("dai"), du_an: trangThai.duAn,
       });
       m.ket_qua = kq.ket_qua;
       m.tt = "xong";
@@ -704,13 +750,64 @@ function chonAnh(ev) {
   anh.src = dc;
 }
 
+/* ---------------- Dự án: mỗi dự án giữ riêng bộ kênh của nó ---------------- */
+const TAT_CA_DU_AN = "";
+function veChonDuAn() {
+  const ds = trangThai.duAnDs || [];
+  if (!ds.includes(trangThai.duAn)) trangThai.duAn = TAT_CA_DU_AN;
+  $("#chonDuAn").innerHTML = `<option value="">Tất cả dự án</option>`
+    + ds.map((d) => `<option value="${esc(d)}"${d === trangThai.duAn ? " selected" : ""}>${esc(d)}</option>`).join("");
+  const soKenh = trangThai.ketNoi.filter((k) => !trangThai.duAn || k.du_an === trangThai.duAn).length;
+  $("#ghiDuAn").textContent = trangThai.duAn
+    ? `Đang xem dự án “${trangThai.duAn}” — ${soKenh} kênh. Kênh mới tạo sẽ thuộc dự án này, và chỉ những kênh này được đăng.`
+    : "Đang xem tất cả kênh. Chọn một dự án để chỉ đăng lên kênh của dự án đó.";
+  $("#nutXoaDuAn").style.display = trangThai.duAn ? "" : "none";
+}
+async function taiDuAn() {
+  try { trangThai.duAnDs = await goi("/du-an"); } catch { trangThai.duAnDs = []; }
+  veChonDuAn();
+}
+$("#chonDuAn").onchange = (e) => {
+  trangThai.duAn = e.target.value;
+  try { localStorage.setItem("du_an_dang_chon", trangThai.duAn); } catch {}
+  veKetNoi();
+  veChonDuAn();
+};
+$("#nutThemDuAn").onclick = async () => {
+  const ten = (prompt("Tên dự án mới (ví dụ tên khách hàng):") || "").trim();
+  if (!ten) return;
+  try {
+    const kq = await goi("/du-an", "POST", { ten });
+    trangThai.duAnDs = kq.ds;
+    trangThai.duAn = ten;
+    try { localStorage.setItem("du_an_dang_chon", ten); } catch {}
+    veKetNoi();
+    veChonDuAn();
+    hienTT($("#ttBieuMau"), `Đã tạo dự án “${ten}”. Giờ anh/chị kết nối các kênh cho dự án này.`);
+  } catch (e) { hienTT($("#ttBieuMau"), e.message, true); }
+};
+$("#nutXoaDuAn").onclick = async () => {
+  const ten = trangThai.duAn;
+  if (!ten) return;
+  if (!confirm(`Xoá dự án “${ten}” khỏi danh sách?\nCác kênh của dự án này KHÔNG bị xoá, chúng chuyển về mục "chưa xếp dự án".`)) return;
+  try {
+    const kq = await goi("/du-an-xoa", "POST", { ten });
+    trangThai.duAnDs = kq.ds;
+    trangThai.duAn = TAT_CA_DU_AN;
+    try { localStorage.setItem("du_an_dang_chon", ""); } catch {}
+    await taiKetNoi();
+    veChonDuAn();
+  } catch (e) { hienTT($("#ttBieuMau"), e.message, true); }
+};
+
 /* ---------------- Bước 2: kết nối ---------------- */
 async function taiKetNoi() {
   trangThai.ketNoi = await goi("/ket-noi");
   veKetNoi();
+  veChonDuAn();
 }
 function veKetNoi() {
-  const ds = trangThai.ketNoi;
+  const ds = trangThai.ketNoi.filter((k) => !trangThai.duAn || k.du_an === trangThai.duAn);
   $("#dsKetNoi").innerHTML = ds.length ? ds.map((k) => `
     <div class="kn ${k.bat ? "bat" : ""}">
       <label class="cong-tac" title="Bật/tắt đăng lên ${esc(k.ten)}">
@@ -720,6 +817,10 @@ function veKetNoi() {
         <div class="ten">${esc(k.ten)}</div>
         <div class="phu">${k.truong.map((t) => `${esc(t.nhan)}: ${esc(t.gia_tri || "—")}`).join(" · ")}</div>
         <div class="phu">Gửi tới: ${esc(k.may_chu)}</div>
+        <select data-doi-du-an="${k.id}" title="Xếp kênh này vào dự án">
+          <option value="">— chưa xếp dự án —</option>
+          ${(trangThai.duAnDs || []).map((d) => `<option value="${esc(d)}"${d === k.du_an ? " selected" : ""}>${esc(d)}</option>`).join("")}
+        </select>
       </div>
       <button class="nut chu nho" data-xoa="${k.id}" title="Xoá kết nối">Xoá</button>
     </div>`).join("")
@@ -728,6 +829,15 @@ function veKetNoi() {
     const k = ds.find((x) => x.id === o.dataset.id);
     k.bat = o.checked; veKetNoi();
     try { await goi(`/ket-noi/${k.id}/bat-tat`, "POST", { bat: k.bat }); } catch (e) { alert(e.message); taiKetNoi(); }
+  });
+  $("#dsKetNoi").querySelectorAll("[data-doi-du-an]").forEach((o) => o.onchange = async () => {
+    const k = trangThai.ketNoi.find((x) => x.id === o.dataset.doiDuAn);
+    try {
+      await goi(`/ket-noi/${k.id}/du-an`, "POST", { du_an: o.value });
+      k.du_an = o.value;
+      veKetNoi();
+      veChonDuAn();
+    } catch (e) { alert(e.message); }
   });
   $("#dsKetNoi").querySelectorAll("[data-xoa]").forEach((n) => n.onclick = async () => {
     const k = ds.find((x) => x.id === n.dataset.xoa);
@@ -872,7 +982,7 @@ async function luuKetNoi() {
   const nut = $("#nutLuuKN");
   nut.disabled = true;
   try {
-    await goi("/ket-noi", "POST", { ten: $("#bmTen").value.trim(), cong_thuc: ct, gia_tri: giaTri });
+    await goi("/ket-noi", "POST", { ten: $("#bmTen").value.trim(), cong_thuc: ct, gia_tri: giaTri, du_an: trangThai.duAn });
     $("#vungBieuMau").innerHTML = "";
     $("#oTenNenTang").value = "";
     hienTT($("#ttBieuMau"), "Đã lưu kết nối và bật sẵn công tắc.");
@@ -894,12 +1004,13 @@ function lyDoChuaDang() {
   const gh = b.gioi_han_bai[b.loai_bai];
   if (!thanBai(b.loai_bai)) return `${TEN_LOAI[b.loai_bai]} chưa có nội dung.`;
   if (doDai(baiDayDu(b.loai_bai)) > gh) return `${TEN_LOAI[b.loai_bai]} đang ${doDai(baiDayDu(b.loai_bai))} ký tự — tối đa ${gh}.`;
-  if (!trangThai.ketNoi.some((k) => k.bat)) return "Chưa bật nơi đăng nào ở bước 2.";
+  if (!trangThai.ketNoi.some((k) => k.bat && (!trangThai.duAn || k.du_an === trangThai.duAn)))
+    return trangThai.duAn ? `Dự án “${trangThai.duAn}” chưa bật nơi đăng nào.` : "Chưa bật nơi đăng nào ở bước 2.";
   return "";
 }
 function capNhatNutDang() {
   const lyDo = lyDoChuaDang();
-  const soNoi = trangThai.ketNoi.filter((k) => k.bat).length;
+  const soNoi = trangThai.ketNoi.filter((k) => k.bat && (!trangThai.duAn || k.du_an === trangThai.duAn)).length;
   const nut = $("#nutDang");
   nut.disabled = !!lyDo || trangThai.dangDang;
   if (!trangThai.dangDang) nut.textContent = soNoi ? `Đăng ${trangThai.bai ? TEN_LOAI[trangThai.bai.loai_bai || "ngan"].toLowerCase() : "bài"} lên ${soNoi} nơi đang bật` : "Đăng bài";
@@ -915,7 +1026,7 @@ $("#nutDang").onclick = async () => {
   veBang(noiDang.map((k) => ({ ten: k.ten, cho: true })));
   try {
     const kq = await goi("/dang-bai", "POST", {
-      tieu_de: gon(b.tieu_de), tom_tat: gon(b.tom_tat), link_goc: b.link_goc,
+      tieu_de: gon(b.tieu_de), tom_tat: gon(b.tom_tat), link_goc: b.link_goc, du_an: trangThai.duAn,
       loai_bai: b.loai_bai, than_bai: thanBai(b.loai_bai),
       than_ngan: thanBai("ngan"), than_dai: thanBai("dai"),
       anh_url: b.anh_url, anh_tai_len: b.anh_tai_len,
@@ -955,6 +1066,8 @@ async function khoiDong() {
     if (!tt.da_thiet_lap) return hienManKhoa("thiet-lap");
     if (!tt.da_dang_nhap) return hienManKhoa("dang-nhap");
     trangThai.ai = tt.ai; trangThai.coGemini = tt.co_gemini; trangThai.coClaude = tt.co_claude; veAI();
+    try { trangThai.duAn = localStorage.getItem("du_an_dang_chon") || ""; } catch {}
+    await taiDuAn();
     await taiKetNoi();
     await taiDanhSachNenTang();
     await xuLyOauthQuayVe();
