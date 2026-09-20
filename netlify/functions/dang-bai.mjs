@@ -234,6 +234,29 @@ export default async (req) => {
       return traJson({ ket_qua: await Promise.all(dangBat.map((kn) => guiAnToan(kn, bai))) });
     }
 
+    // Đổi "mã cho phép" (code) nền tảng trả về sau khi bấm Approve thành mã kết nối lâu dài
+    if (duong === "/doi-ma-oauth" && pt === "POST") {
+      const diaChi = String(dl.dia_chi || "").trim();
+      if (!(diaChi.startsWith("https://") || /^http:\/\/(127\.0\.0\.1|localhost)[:/]/.test(diaChi))) return loi("Địa chỉ đổi mã không hợp lệ (phải là https).");
+      let r, kq;
+      try {
+        r = await fetch(diaChi, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json", "User-Agent": "DangBaiDaKenh/1.0" },
+          body: new URLSearchParams({
+            client_id: String(dl.client_id || "").trim(), client_secret: String(dl.client_secret || "").trim(),
+            code: String(dl.ma || "").trim(), redirect_uri: String(dl.quay_ve || "").trim(),
+            grant_type: "authorization_code",
+          }),
+          signal: AbortSignal.timeout(30000),
+        });
+        kq = await r.json().catch(() => ({}));
+      } catch { return loi("Không kết nối được tới nền tảng."); }
+      if (!r.ok) return loi(`Nền tảng không cấp mã kết nối (${r.status}). ${kq.error_description || kq.error || ""}`);
+      if (!kq.access_token) return loi("Nền tảng không trả về mã kết nối.");
+      return traJson({ ma_truy_cap: kq.access_token });
+    }
+
     if (duong === "/cai-dat" && pt === "POST") {
       for (const [loai, dau, ten] of [["gemini", "AIza", "Gemini"], ["claude", "sk-ant-", "Claude"]]) {
         if (!(`chia_khoa_${loai}` in dl)) continue;

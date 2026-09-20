@@ -78,6 +78,8 @@
   .dong-khoa { font-size: 13px; color: var(--chu-phu); background: var(--nen); border-radius: 8px; padding: 7px 10px; margin: 6px 0 8px; word-break: break-all; }
   .o-dan { margin: 8px 0; font-size: 13.5px; background: #fff; }
   .hop-dan-nho { font-size: 13.5px; color: var(--chu-phu); margin-top: 8px; }
+  .hop-oauth { background: var(--xanh-nhat); border-radius: 10px; padding: 12px 14px; margin-top: 14px; font-size: 13.5px; }
+  .hop-oauth .nut { margin-top: 8px; }
   .xem-truoc { margin-top: 20px; border-top: 1px solid var(--vien); padding-top: 18px; }
   .xem-truoc h3 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--chu-phu); }
   .bai-dang { border: 1px solid var(--vien); border-radius: 12px; overflow: hidden; max-width: 520px; background: #fff; box-shadow: 0 1px 3px rgba(16,24,40,.06); }
@@ -600,6 +602,49 @@ $("#formNenTang").onsubmit = async (ev) => {
   } finally { nut.disabled = false; }
 };
 
+/* ---------------- Kết nối bằng cách bấm nút (OAuth, vd WordPress.com) ---------------- */
+const quayVe = () => location.origin + location.pathname;
+const dienMau = (mau, giaTri) => mau.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_, t) =>
+  encodeURIComponent(t === "quay_ve" ? quayVe() : (giaTri[t.replace(/^truong\./, "")] ?? "")));
+function thuGiaTri() {
+  const g = {};
+  $("#vungBieuMau").querySelectorAll("input[data-khoa]").forEach((o) => (g[o.dataset.khoa] = o.value.trim()));
+  return g;
+}
+function batDauOauth() {
+  const { ten, congThuc: ct } = trangThai.bieuMau;
+  const giaTri = thuGiaTri();
+  const thieu = (ct.lay_ma.truong_can || []).filter((k) => !giaTri[k]);
+  if (thieu.length) return hienTT($("#ttLuuKN"), "Hãy điền " + thieu.join(", ") + " trước khi bấm nút này.", true);
+  sessionStorage.setItem("oauth_cho", JSON.stringify({ ten: $("#bmTen").value.trim() || ten, congThuc: ct, giaTri, quayVe: quayVe() }));
+  location.href = dienMau(ct.lay_ma.dia_chi_cho_phep, giaTri);
+}
+async function xuLyOauthQuayVe() {
+  const sp = new URLSearchParams(location.search);
+  const ma = sp.get("code"), loiOauth = sp.get("error_description") || sp.get("error");
+  if (!ma && !loiOauth) return;
+  const cho = sessionStorage.getItem("oauth_cho");
+  sessionStorage.removeItem("oauth_cho");
+  history.replaceState({}, "", location.pathname);
+  if (!cho) return;
+  const { ten, congThuc, giaTri, quayVe: qv } = JSON.parse(cho);
+  trangThai.bieuMau = { ten, congThuc };
+  veBieuMau();
+  $("#vungBieuMau").querySelectorAll("input[data-khoa]").forEach((o) => { if (giaTri[o.dataset.khoa]) o.value = giaTri[o.dataset.khoa]; });
+  $("#oTenNenTang").value = ten;
+  if (loiOauth) return hienTT($("#ttLuuKN"), `${ten} chưa cho phép: ${loiOauth}`, true);
+  hienTT($("#ttLuuKN"), "Đang đổi lấy mã kết nối…", false, true);
+  try {
+    const lm = congThuc.lay_ma;
+    const kq = await goi("/doi-ma-oauth", "POST", {
+      dia_chi: lm.dia_chi_doi_ma, ma, quay_ve: qv,
+      client_id: giaTri[lm.truong_can[0]], client_secret: giaTri[lm.truong_can[1]],
+    });
+    const o = $("#vungBieuMau").querySelector(`input[data-khoa="${lm.truong_ket_qua}"]`);
+    o.value = kq.ma_truy_cap;
+    hienTT($("#ttLuuKN"), "Đã lấy được mã kết nối. Bấm “Lưu kết nối” để hoàn tất.");
+  } catch (e) { hienTT($("#ttLuuKN"), e.message, true); }
+}
 function congThucSach(ct) {
   const { ly_do, ...con } = ct;
   return con;
@@ -621,6 +666,12 @@ function veBieuMau() {
           <input type="${t.bi_mat ? "password" : "text"}" id="bm_${i}" data-khoa="${esc(t.khoa)}" autocomplete="off" placeholder="${esc(t.goi_y || "")}">
           ${t.bi_mat ? `<button type="button" data-hien="bm_${i}">Hiện</button>` : ""}
         </div>`).join("")}
+      ${ct.lay_ma ? `
+      <div class="hop-oauth">
+        <b>Bấm nút này để lấy mã kết nối</b> — ${esc(ten)} sẽ hỏi bạn cho phép, bấm Approve là xong.
+        <div class="goi-y">Khi tạo ứng dụng trên ${esc(ten)}, dán đúng địa chỉ này vào ô <b>Redirect URL</b>:<br><b>${esc(quayVe())}</b></div>
+        <button type="button" class="nut nho" id="nutOauth">Kết nối với ${esc(ten)}</button>
+      </div>` : ""}
       <details class="ky-thuat">
         <summary>Chi tiết kỹ thuật (dành cho người rành — thường không cần sửa)</summary>
         <div class="goi-y">Bài sẽ được gửi tới: <b>${esc(ct.gui?.dia_chi || "")}</b></div>
@@ -637,6 +688,7 @@ function veBieuMau() {
     o.type = o.type === "password" ? "text" : "password";
     n.textContent = o.type === "password" ? "Hiện" : "Ẩn";
   });
+  if (ct.lay_ma) $("#nutOauth").onclick = batDauOauth;
   $("#nutHuyKN").onclick = () => { $("#vungBieuMau").innerHTML = ""; trangThai.bieuMau = null; };
   $("#nutLuuKN").onclick = luuKetNoi;
 }
@@ -733,6 +785,7 @@ async function khoiDong() {
     if (!tt.da_dang_nhap) return hienManKhoa("dang-nhap");
     trangThai.ai = tt.ai; trangThai.coGemini = tt.co_gemini; trangThai.coClaude = tt.co_claude; veAI();
     await taiKetNoi();
+    await xuLyOauthQuayVe();
   } catch (e) {
     hienTT($("#ttLay"), "Không kết nối được với máy chủ: " + e.message, true);
   }

@@ -33,6 +33,7 @@ function apBoLoc(v, boLoc) {
   for (const loc of boLoc) {
     const m = loc.match(/^cat:(\d+)$/);
     if (m && doDai(v) > Number(m[1])) v = [...v.normalize("NFC")].slice(0, Number(m[1]) - 1).join("").trimEnd() + "…";
+    else if (loc === "mien") v = v.replace(/^https?:\/\//, "").split("/")[0]; // "https://abc.com/x" -> "abc.com"
     else if (loc === "little") v = v.replace(KY_TU_LITTLE, "\\$1");
   }
   return v;
@@ -146,19 +147,22 @@ async function thucHien(yc, bien, anh) {
   const thanMau = yc.than;
   let than;
   if (phuongThuc !== "GET" && thanMau != null) {
+    // bỏ hẳn ô chỉ gồm 1 biến mà biến đó rỗng (vd ảnh công khai khi người dùng tự tải ảnh lên)
+    const thanGon = Object.fromEntries(Object.entries(thanMau).filter(([, v]) =>
+      !(typeof v === "string" && MOT_BIEN.test(v.trim()) && v.trim() !== "{{anh_tep}}" && dien(v, bien)[1])));
     if (kieu === "multipart") {
       than = new FormData();
-      for (const [k, v] of Object.entries(thanMau)) {
+      for (const [k, v] of Object.entries(thanGon)) {
         if (laAnhTep(v)) { if (anh) than.append(k, new Blob([anh.du], { type: anh.kieu }), anh.ten); }
         else { const g = dienCauTruc(v, bien); than.append(k, typeof g === "string" ? g : JSON.stringify(g)); }
       }
       boContentType(); // để trình gửi tự đặt ranh giới multipart
     } else if (kieu === "form") {
-      const g = dienCauTruc(thanMau, bien);
+      const g = dienCauTruc(thanGon, bien);
       than = new URLSearchParams(Object.entries(g).map(([k, v]) => [k, typeof v === "string" ? v : JSON.stringify(v)]));
       boContentType();
     } else {
-      than = JSON.stringify(dienCauTruc(thanMau, bien));
+      than = JSON.stringify(dienCauTruc(thanGon, bien));
       if (!Object.keys(tieuDeHttp).some((k) => k.toLowerCase() === "content-type")) tieuDeHttp["Content-Type"] = "application/json; charset=utf-8";
     }
   }

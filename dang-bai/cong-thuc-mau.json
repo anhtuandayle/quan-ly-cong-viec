@@ -325,15 +325,84 @@
     }
   },
   {
-    "ten": "WordPress",
+    "ten": "WordPress.com",
+    "ten_khac": [
+      "wordpresscom",
+      "wp com",
+      "blog wordpress com",
+      "wordpress.com blog"
+    ],
+    "huong_dan": "Dành cho blog có đuôi .wordpress.com (WordPress.com), KHÁC với WordPress tự cài trên tên miền riêng.\n1. Vào https://developer.wordpress.com/apps → Create New Application.\n2. Điền: Name = Dang bai da kenh; Website URL và Redirect URLs = dán ĐÚNG địa chỉ hiện trong khung màu xanh bên dưới; Type = Web client.\n3. Bấm Create → trang hiện Client ID và Client Secret → dán vào 2 ô dưới.\n4. Bấm nút “Kết nối với WordPress.com”, đăng nhập, chọn blog rồi bấm Approve. Ứng dụng tự nhận mã kết nối.\n5. Bấm Lưu kết nối.",
+    "truong": [
+      {
+        "khoa": "dia_chi_trang",
+        "nhan": "Địa chỉ blog",
+        "bi_mat": false,
+        "bat_buoc": true,
+        "goi_y": "Ví dụ vietcombanksecurities.wordpress.com"
+      },
+      {
+        "khoa": "client_id",
+        "nhan": "Client ID (ở bước 3)",
+        "bi_mat": false,
+        "bat_buoc": true,
+        "goi_y": "Dãy số"
+      },
+      {
+        "khoa": "client_secret",
+        "nhan": "Client Secret (ở bước 3)",
+        "bi_mat": true,
+        "bat_buoc": true,
+        "goi_y": "Dãy chữ và số dài"
+      },
+      {
+        "khoa": "ma_truy_cap",
+        "nhan": "Mã kết nối (nút bên dưới tự điền)",
+        "bi_mat": true,
+        "bat_buoc": true,
+        "goi_y": "Bấm nút Kết nối, đừng gõ tay"
+      }
+    ],
+    "lay_ma": {
+      "dia_chi_cho_phep": "https://public-api.wordpress.com/oauth2/authorize?client_id={{truong.client_id}}&redirect_uri={{quay_ve}}&response_type=code",
+      "dia_chi_doi_ma": "https://public-api.wordpress.com/oauth2/token",
+      "truong_can": [
+        "client_id",
+        "client_secret"
+      ],
+      "truong_ket_qua": "ma_truy_cap"
+    },
+    "gui": {
+      "phuong_thuc": "POST",
+      "dia_chi": "https://public-api.wordpress.com/rest/v1.1/sites/{{truong.dia_chi_trang|mien}}/posts/new",
+      "tieu_de_http": {
+        "Authorization": "Bearer {{truong.ma_truy_cap}}"
+      },
+      "kieu_than": "form",
+      "than": {
+        "title": "{{tieu_de}}",
+        "content": "{{noi_dung_html}}",
+        "status": "publish",
+        "media_urls[]": "{{anh_url}}"
+      }
+    },
+    "ket_qua": {
+      "thanh_cong_khi": "ID",
+      "duong_dan_bai": "{{phan_hoi.URL}}",
+      "thong_bao_loi": "message"
+    }
+  },
+  {
+    "ten": "WordPress (tự cài)",
     "ten_khac": [
       "wp",
-      "wordpress.org",
+      "wordpress",
       "website wordpress",
       "web wordpress",
-      "blog wordpress"
+      "blog wordpress",
+      "wordpress.org"
     ],
-    "huong_dan": "1. Đăng nhập trang quản trị WordPress (tenmien.com/wp-admin) bằng tài khoản có quyền đăng bài (Tác giả/Biên tập viên/Quản trị).\n2. Vào Thành viên (Người dùng) → Hồ sơ, kéo xuống mục \"Mật khẩu ứng dụng\" (Application Passwords).\n3. Gõ tên bất kỳ, vd \"Dang bai da kenh\", bấm \"Thêm mật khẩu ứng dụng mới\" → sao chép dãy mật khẩu hiện ra (chỉ hiện 1 lần).\n4. Điền địa chỉ trang, tên đăng nhập và dãy mật khẩu đó vào các ô bên dưới. KHÔNG dùng mật khẩu đăng nhập thường.\nLưu ý: trang phải chạy https; nếu không thấy mục Mật khẩu ứng dụng, nhờ bộ phận kỹ thuật kiểm tra plugin bảo mật.",
+    "huong_dan": "Dành cho WordPress tự cài trên tên miền riêng. Nếu blog của bạn có đuôi .wordpress.com, hãy gõ “WordPress.com” để lấy công thức khác.\n1. Đăng nhập trang quản trị WordPress (tenmien.com/wp-admin) bằng tài khoản có quyền đăng bài (Tác giả/Biên tập viên/Quản trị).\n2. Vào Thành viên (Người dùng) → Hồ sơ, kéo xuống mục \"Mật khẩu ứng dụng\" (Application Passwords).\n3. Gõ tên bất kỳ, vd \"Dang bai da kenh\", bấm \"Thêm mật khẩu ứng dụng mới\" → sao chép dãy mật khẩu hiện ra (chỉ hiện 1 lần).\n4. Điền địa chỉ trang, tên đăng nhập và dãy mật khẩu đó vào các ô bên dưới. KHÔNG dùng mật khẩu đăng nhập thường.\nLưu ý: trang phải chạy https; nếu không thấy mục Mật khẩu ứng dụng, nhờ bộ phận kỹ thuật kiểm tra plugin bảo mật.",
     "truong": [
       {
         "khoa": "dia_chi_trang",
