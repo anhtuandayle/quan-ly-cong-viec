@@ -90,6 +90,13 @@
   .ds-bai li button { width: 100%; text-align: left; background: none; border: 0; padding: 9px 4px; cursor: pointer; font-size: 14px; }
   .ds-bai li button:hover { color: var(--xanh); background: var(--xanh-nhat); border-radius: 8px; }
   .ds-bai input { margin-top: 8px; }
+  .ds-bai li { display: flex; align-items: center; gap: 8px; }
+  .o-tich { display: flex; align-items: center; gap: 6px; font-size: 13.5px; color: var(--chu-phu); cursor: pointer; }
+  .o-tich input { width: 16px; height: 16px; accent-color: var(--xanh); }
+  .hang-doi { margin-top: 16px; border: 1.5px solid var(--xanh); border-radius: 12px; padding: 12px 14px; background: #fbfcff; }
+  .hang-doi .dau { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-weight: 700; }
+  .hang-doi table { margin-top: 8px; }
+  .hang-doi td:first-child { max-width: 320px; }
   .xem-truoc { margin-top: 20px; border-top: 1px solid var(--vien); padding-top: 18px; }
   .xem-truoc h3 { margin: 0 0 10px; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--chu-phu); }
   .bai-dang { border: 1px solid var(--vien); border-radius: 12px; overflow: hidden; max-width: 520px; background: #fff; box-shadow: 0 1px 3px rgba(16,24,40,.06); }
@@ -253,6 +260,7 @@
       <button class="nut lon" id="nutDang" disabled>Đăng bài</button>
       <span class="ly-do" id="lyDo"></span>
     </div>
+    <div id="vungHangDoi"></div>
     <div id="bangKetQua"></div>
   </section>
 </main>
@@ -413,6 +421,76 @@ $("#formLink").onsubmit = async (ev) => {
   } finally { nut.disabled = false; capNhatNutDang(); }
 };
 
+/* ---------------- Đăng hàng loạt: chạy cuốn chiếu từng bài ---------------- */
+const NGHI_GIUA_BAI = 4000; // nghỉ 4 giây giữa 2 bài cho nhẹ nền tảng
+const doiMs = (ms) => new Promise((r) => setTimeout(r, ms));
+
+function veHangDoi() {
+  const hd = trangThai.hangDoi;
+  if (!hd) return ($("#vungHangDoi").innerHTML = "");
+  const xong = hd.ds.filter((m) => m.tt === "xong" || m.tt === "loi").length;
+  const nhan = { cho: "Đang chờ", soan: "Đang soạn bài…", dang: "Đang đăng…", xong: "Xong", loi: "Lỗi", bo_qua: "Đã bỏ qua" };
+  $("#vungHangDoi").innerHTML = `
+    <div class="hang-doi">
+      <div class="dau">
+        <span>Đăng hàng loạt: ${xong}/${hd.ds.length} bài${hd.dangChay ? "" : " — đã dừng"}</span>
+        ${hd.dangChay ? '<button type="button" class="nut chu nho" id="nutDungLoat">Dừng sau bài này</button>'
+                      : '<button type="button" class="nut chu nho" id="nutDongLoat">Đóng</button>'}
+      </div>
+      <table><thead><tr><th>Bài</th><th>Trạng thái</th><th>Kết quả</th></tr></thead><tbody>
+      ${hd.ds.map((m) => `<tr>
+        <td>${esc(m.tieu_de)}</td>
+        <td>${m.tt === "xong" ? `<span class="nhan-tt ok">✓ ${m.ket_qua.filter((k) => k.thanh_cong).length}/${m.ket_qua.length} nơi</span>`
+            : m.tt === "loi" ? '<span class="nhan-tt hong">✕ Lỗi</span>'
+            : m.tt === "cho" || m.tt === "bo_qua" ? `<span class="goi-y">${nhan[m.tt]}</span>`
+            : `<span class="nhan-tt cho"><span class="xoay"></span>${nhan[m.tt]}</span>`}</td>
+        <td>${m.tt === "loi" ? `<span class="loi-chi-tiet">${esc(m.loi)}</span>`
+            : (m.ket_qua || []).map((k) => k.thanh_cong
+                ? `<div>${esc(k.ten)}: ${k.duong_dan ? `<a href="${esc(k.duong_dan)}" target="_blank" rel="noopener">xem bài</a>` : "đã đăng"}</div>`
+                : `<div class="loi-chi-tiet">${esc(k.ten)}: ${esc(k.loi)}</div>`).join("")}</td>
+      </tr>`).join("")}
+      </tbody></table>
+    </div>`;
+  if ($("#nutDungLoat")) $("#nutDungLoat").onclick = () => { hd.dung = true; hienTT($("#ttLay"), "Sẽ dừng sau khi xong bài đang chạy…"); };
+  if ($("#nutDongLoat")) $("#nutDongLoat").onclick = () => { trangThai.hangDoi = null; veHangDoi(); };
+}
+
+async function batDauHangDoi(ds) {
+  const noiDang = trangThai.ketNoi.filter((k) => k.bat);
+  if (!noiDang.length) return hienTT($("#ttLay"), "Chưa bật nơi đăng nào ở bước 2.", true);
+  if (ds.length > 50) return hienTT($("#ttLay"), "Mỗi lần chỉ nên đăng tối đa 50 bài. Hãy bớt bài đã chọn.", true);
+  const loai = trangThai.bai?.loai_bai || "ngan";
+  const ten = loai === "ngan" ? "bài ngắn" : "bài dài";
+  if (!confirm(`Sẽ đăng ${ds.length} bài (bản ${ten}) lên: ${noiDang.map((k) => k.ten).join(", ")}.\n`
+             + `Mỗi bài đăng thật ngay, không xem trước được. Tiếp tục?`)) return;
+  trangThai.hangDoi = { ds: ds.map((b) => ({ ...b, tt: "cho", ket_qua: [] })), dangChay: true, dung: false };
+  veHangDoi();
+  $("#vungHangDoi").scrollIntoView({ behavior: "smooth", block: "center" });
+  for (const m of trangThai.hangDoi.ds) {
+    if (trangThai.hangDoi.dung) { m.tt = "bo_qua"; continue; }
+    try {
+      m.tt = "soan"; veHangDoi();
+      const bai = await goi("/trich-xuat", "POST", { url: m.link });
+      const than = (l) => (bai["bai_" + l] || "").replace(/\r/g, "").trim();
+      m.tt = "dang"; veHangDoi();
+      const kq = await goi("/dang-bai", "POST", {
+        tieu_de: gon(bai.tieu_de), tom_tat: gon(bai.tom_tat), link_goc: bai.link_goc, anh_url: bai.anh_url,
+        loai_bai: loai, than_bai: than(loai), than_ngan: than("ngan"), than_dai: than("dai"),
+      });
+      m.ket_qua = kq.ket_qua;
+      m.tt = "xong";
+    } catch (e) {
+      m.tt = "loi"; m.loi = e.message;
+    }
+    veHangDoi();
+    if (!trangThai.hangDoi.dung) await doiMs(NGHI_GIUA_BAI);
+  }
+  trangThai.hangDoi.dangChay = false;
+  const ok = trangThai.hangDoi.ds.filter((m) => m.tt === "xong").length;
+  hienTT($("#ttLay"), `Đã chạy xong: ${ok}/${trangThai.hangDoi.ds.length} bài đăng được.`);
+  veHangDoi();
+}
+
 /* ---------------- Danh sách tất cả bài của một mục blog ---------------- */
 function veDanhSachBai(kq) {
   const bai = kq.bai;
@@ -421,8 +499,14 @@ function veDanhSachBai(kq) {
       <div class="dau"><span>${esc(kq.ten_muc)} — ${bai.length} bài</span>
         <button type="button" class="nut chu nho" id="dongDsBai">Đóng</button></div>
       <input type="text" id="locDsBai" placeholder="Gõ để lọc theo tên bài…" autocomplete="off">
-      <ul id="dsBaiUl">${bai.map((b, i) => `<li><button type="button" data-i="${i}">${esc(b.tieu_de)}</button></li>`).join("")}</ul>
-      <div class="goi-y">Bấm vào tên bài để lấy bài đó. ${kq.tong_trang > 5 ? "Trang này còn nhiều bài hơn; danh sách lấy tối đa 300 bài mới nhất." : ""}</div>
+      <ul id="dsBaiUl">${bai.map((b, i) => `<li>
+        <label class="o-tich"><input type="checkbox" data-ch="${i}" aria-label="Chọn bài này"></label>
+        <button type="button" data-i="${i}">${esc(b.tieu_de)}</button></li>`).join("")}</ul>
+      <div class="dau" style="margin-top:10px">
+        <label class="o-tich"><input type="checkbox" id="chonHetBai"> Chọn tất cả bài đang hiện</label>
+        <button type="button" class="nut nho" id="nutDangLoat" disabled>Đăng hàng loạt</button>
+      </div>
+      <div class="goi-y">Bấm tên bài để soạn từng bài, hoặc tích chọn nhiều bài rồi bấm “Đăng hàng loạt”. ${kq.tong_trang > 5 ? "Danh sách lấy tối đa 300 bài mới nhất." : ""}</div>
     </div>`;
   $("#dongDsBai").onclick = () => ($("#vungDanhSach").innerHTML = "");
   $("#locDsBai").oninput = (e) => {
@@ -430,6 +514,22 @@ function veDanhSachBai(kq) {
     $("#dsBaiUl").querySelectorAll("li").forEach((li, i) => {
       li.style.display = !tim || gon(bai[i].tieu_de).toLowerCase().includes(tim) ? "" : "none";
     });
+  };
+  const demChon = () => {
+    const n = $("#dsBaiUl").querySelectorAll("input[data-ch]:checked").length;
+    $("#nutDangLoat").disabled = !n;
+    $("#nutDangLoat").textContent = n ? `Đăng hàng loạt (${n} bài)` : "Đăng hàng loạt";
+  };
+  $("#dsBaiUl").querySelectorAll("input[data-ch]").forEach((o) => o.onchange = demChon);
+  $("#chonHetBai").onchange = (e) => {
+    $("#dsBaiUl").querySelectorAll("li").forEach((li) => {
+      if (li.style.display !== "none") li.querySelector("input[data-ch]").checked = e.target.checked;
+    });
+    demChon();
+  };
+  $("#nutDangLoat").onclick = () => {
+    const chon = [...$("#dsBaiUl").querySelectorAll("input[data-ch]:checked")].map((o) => bai[o.dataset.ch]);
+    batDauHangDoi(chon);
   };
   $("#dsBaiUl").querySelectorAll("button[data-i]").forEach((n) => n.onclick = () => {
     $("#oLink").value = bai[n.dataset.i].link;
