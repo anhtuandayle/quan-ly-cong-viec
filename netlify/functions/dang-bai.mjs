@@ -1,12 +1,12 @@
 // Bộ điều phối của ứng dụng "Đăng bài đa kênh" trên Netlify: mọi đường dẫn /api/dang-bai/...
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { LoiAI, aiDangDung, taoBaiAI, taoCongThucAI } from "../dang-bai/tri-tue.mjs";
 import { GIOI_HAN_BAI, catTheoCau, dongCuoi, ghepBai, nganSach, taoBaiDonGian } from "../dang-bai/bai-dang.mjs";
 import { GIOI_HAN_TOM_TAT, LoiNguoiDung, chuanHoa, doDai, tomTatDonGian, trichXuat } from "../dang-bai/trich-xuat.mjs";
 import { dien, guiAnToan } from "../dang-bai/phan-phoi.mjs";
 import { moKho } from "../dang-bai/kho.mjs";
 import {
-  TEN_COOKIE, bamMatKhau, dungMaKichHoat, dungMatKhau, phienHopLe, taoBiMatPhien, taoPhien,
+  DIA_CHI_CONG, TEN_COOKIE, docPhienNguoi, docVeTuCong, dungMatKhau, taoBiMatPhien, taoPhienNguoi,
 } from "../dang-bai/bao-mat.mjs";
 
 const traJson = (duLieu, ma = 200, them = {}) =>
@@ -24,8 +24,30 @@ function docCookie(req, ten) {
   }
   return "";
 }
+// Lax (không phải Strict): phiên được đặt ngay sau khi bấm từ cổng Trợ lý AI (trang khác) chuyển sang.
+// Lệnh thay đổi vẫn phải kèm header X-Ung-Dung nên trang lạ không ra lệnh ngầm được.
 const cookiePhien = (giaTri, thoiHan) =>
-  `${TEN_COOKIE}=${giaTri}; Path=/api/dang-bai; HttpOnly; Secure; SameSite=Strict; Max-Age=${thoiHan}`;
+  `${TEN_COOKIE}=${giaTri}; Path=/api/dang-bai; HttpOnly; Secure; SameSite=Lax; Max-Age=${thoiHan}`;
+
+/** Kho riêng của từng người: mọi khoá dữ liệu nằm dưới `nguoi/<mã băm email>/`. */
+function khoNguoi(khoChung, email) {
+  const goc = `nguoi/${createHash("sha256").update(email).digest("hex").slice(0, 24)}/`;
+  return {
+    doc: (k) => khoChung.doc(goc + k),
+    ghi: (k, v) => khoChung.ghi(goc + k, v),
+    xoa: (k) => khoChung.xoa(goc + k),
+  };
+}
+
+/** Bí mật ký phiên dùng chung cho cả ứng dụng (tạo 1 lần). */
+async function biMatHeThong(khoChung) {
+  const ht = (await khoChung.doc("he-thong")) || {};
+  if (!ht.bi_mat_phien) {
+    ht.bi_mat_phien = taoBiMatPhien();
+    await khoChung.ghi("he-thong", ht);
+  }
+  return ht.bi_mat_phien;
+}
 
 // ---------------------------------------------------------------- công thức
 
@@ -101,50 +123,49 @@ export default async (req) => {
   const url = new URL(req.url);
   const duong = url.pathname.replace(/^\/api\/dang-bai/, "") || "/";
   const pt = req.method;
-  const kho = moKho();
-
-  // Chặn trang web lạ ra lệnh ngầm: mọi lệnh thay đổi phải kèm dấu hiệu của chính ứng dụng
-  if (pt !== "GET" && req.headers.get("x-ung-dung") !== "dang-bai") return loi("Không được phép", 403);
+  const khoChung = moKho();
 
   try {
-    const caiDat = (await kho.doc("cai-dat")) || {};
-    const daThietLap = !!caiDat.mat_khau;
-    const daDangNhap = daThietLap && phienHopLe(docCookie(req, TEN_COOKIE), caiDat.bi_mat_phien);
+    const biMat = await biMatHeThong(khoChung);
+
+    // Cửa vào từ cổng Trợ lý AI: kiểm tra vé có chữ ký, đặt phiên theo email rồi mở ứng dụng.
+    // (GET vì đây là bước chuyển trang từ cổng sang, không mang lệnh thay đổi dữ liệu nào khác.)
+    if (duong === "/vao" && pt === "GET") {
+      const email = docVeTuCong(url.searchParams.get("ve"));
+      if (!email) {
+        return new Response(null, { status: 302, headers: { Location: `/dang-bai/?loi=ve`, "Cache-Control": "no-store" } });
+      }
+      const p = taoPhienNguoi(biMat, email);
+      return new Response(null, {
+        status: 302,
+        headers: { Location: "/dang-bai/", "Set-Cookie": cookiePhien(p.giaTri, p.thoiHan), "Cache-Control": "no-store" },
+      });
+    }
+
+    // Chặn trang web lạ ra lệnh ngầm: mọi lệnh thay đổi phải kèm dấu hiệu của chính ứng dụng
+    if (pt !== "GET" && req.headers.get("x-ung-dung") !== "dang-bai") return loi("Không được phép", 403);
+
+    const email = docPhienNguoi(docCookie(req, TEN_COOKIE), biMat);
+    const daDangNhap = !!email;
+    const kho = daDangNhap ? khoNguoi(khoChung, email) : null;
+    const caiDat = (daDangNhap && (await kho.doc("cai-dat"))) || {};
     const dl = pt === "POST" ? await req.json().catch(() => ({})) : {};
+    // Dữ liệu của bản cũ (1 mật khẩu dùng chung) — chờ chủ cũ nhận về tài khoản email của mình
+    const cuChung = (await khoChung.doc("cai-dat")) || {};
+    const coDuLieuCu = !!cuChung.mat_khau;
 
     if (duong === "/trang-thai") {
       return traJson({
-        da_thiet_lap: daThietLap, da_dang_nhap: daDangNhap, gioi_han: GIOI_HAN_TOM_TAT,
+        da_dang_nhap: daDangNhap, email: email || "", dia_chi_cong: DIA_CHI_CONG, gioi_han: GIOI_HAN_TOM_TAT,
+        co_du_lieu_cu: daDangNhap && coDuLieuCu,
         ai: daDangNhap ? aiDangDung(caiDat) : "",
         co_gemini: daDangNhap && !!caiDat.chia_khoa_gemini, co_claude: daDangNhap && !!caiDat.chia_khoa_claude,
       });
     }
 
-    // Đặt mật khẩu lần đầu, hoặc đặt lại khi quên — đều cần mã kích hoạt
-    if (duong === "/thiet-lap" && pt === "POST") {
-      if (!dungMaKichHoat(dl.ma_kich_hoat)) { await ngu(1500); return loi("Mã kích hoạt không đúng."); }
-      if (String(dl.mat_khau || "").length < 8) return loi("Mật khẩu cần ít nhất 8 ký tự.");
-      caiDat.mat_khau = await bamMatKhau(dl.mat_khau);
-      caiDat.bi_mat_phien = taoBiMatPhien(); // đăng xuất mọi thiết bị cũ
-      await kho.ghi("cai-dat", caiDat);
-      await kho.xoa("dang-nhap-sai");
-      const p = taoPhien(caiDat.bi_mat_phien);
-      return traJson({ ok: true }, 200, { "Set-Cookie": cookiePhien(p.giaTri, p.thoiHan) });
-    }
-
-    if (duong === "/dang-nhap" && pt === "POST") {
-      if (!daThietLap) return loi("Ứng dụng chưa được đặt mật khẩu.");
-      const sai = (await kho.doc("dang-nhap-sai")) || { dem: 0, tu: 0 };
-      if (sai.dem >= 10 && Date.now() - sai.tu < 15 * 60_000) return loi("Nhập sai quá nhiều lần. Đợi 15 phút rồi thử lại.", 429);
-      if (!(await dungMatKhau(dl.mat_khau, caiDat.mat_khau))) {
-        const moi = Date.now() - sai.tu > 15 * 60_000 ? { dem: 1, tu: Date.now() } : { dem: sai.dem + 1, tu: sai.tu };
-        await kho.ghi("dang-nhap-sai", moi);
-        await ngu(1500);
-        return loi("Mật khẩu không đúng.");
-      }
-      await kho.xoa("dang-nhap-sai");
-      const p = taoPhien(caiDat.bi_mat_phien);
-      return traJson({ ok: true }, 200, { "Set-Cookie": cookiePhien(p.giaTri, p.thoiHan) });
+    // Mật khẩu dùng chung đã bỏ — mọi người đăng nhập bằng email qua cổng Trợ lý AI
+    if ((duong === "/thiet-lap" || duong === "/dang-nhap") && pt === "POST") {
+      return loi("Ứng dụng đã chuyển sang đăng nhập bằng email SEONGON qua cổng Trợ lý AI.", 410);
     }
 
     if (duong === "/dang-xuat" && pt === "POST") {
@@ -153,6 +174,32 @@ export default async (req) => {
 
     // ---- Từ đây trở xuống bắt buộc đã đăng nhập
     if (!daDangNhap) return loi("Cần đăng nhập.", 401);
+
+    // Nhận dữ liệu của bản cũ (kết nối, khoá AI, dự án) về tài khoản email — chứng minh là chủ bằng mật khẩu cũ, 1 lần duy nhất
+    if (duong === "/nhan-du-lieu-cu" && pt === "POST") {
+      if (!coDuLieuCu) return loi("Không còn dữ liệu cũ nào để nhận (có thể đã được nhận rồi).");
+      const sai = (await khoChung.doc("dang-nhap-sai")) || { dem: 0, tu: 0 };
+      if (sai.dem >= 10 && Date.now() - sai.tu < 15 * 60_000) return loi("Nhập sai quá nhiều lần. Đợi 15 phút rồi thử lại.", 429);
+      if (!(await dungMatKhau(dl.mat_khau, cuChung.mat_khau))) {
+        const moi = Date.now() - sai.tu > 15 * 60_000 ? { dem: 1, tu: Date.now() } : { dem: sai.dem + 1, tu: sai.tu };
+        await khoChung.ghi("dang-nhap-sai", moi);
+        await ngu(1500);
+        return loi("Mật khẩu cũ không đúng.");
+      }
+      const ketNoiCu = (await khoChung.doc("ket-noi")) || [];
+      const ketNoiMoi = (await kho.doc("ket-noi")) || [];
+      await kho.ghi("ket-noi", [...ketNoiMoi, ...ketNoiCu]);
+      for (const k of ["chia_khoa_gemini", "chia_khoa_claude", "mo_hinh_gemini", "mo_hinh_claude"]) {
+        if (cuChung[k] && !caiDat[k]) caiDat[k] = cuChung[k];
+      }
+      caiDat.du_an = [...new Set([...(caiDat.du_an || []), ...(cuChung.du_an || [])])];
+      await kho.ghi("cai-dat", caiDat);
+      // Xoá bản cũ khỏi kho chung: không ai khác nhận lại được nữa
+      await khoChung.ghi("cai-dat", { da_chuyen: new Date().toISOString() });
+      await khoChung.xoa("ket-noi");
+      await khoChung.xoa("dang-nhap-sai");
+      return traJson({ ok: true, so_ket_noi: ketNoiCu.length });
+    }
     const goc = url.origin;
     let m;
 

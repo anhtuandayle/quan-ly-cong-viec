@@ -9,7 +9,8 @@ export function moKho() {
     const tep = (k) => path.join(thuMuc, `${k}.json`);
     return {
       doc: async (k) => { try { return JSON.parse(await readFile(tep(k), "utf8")); } catch { return null; } },
-      ghi: async (k, v) => { await mkdir(thuMuc, { recursive: true }); await writeFile(tep(k), JSON.stringify(v, null, 2)); },
+      // Khoá có thể có thư mục con (vd nguoi/<mã>/ket-noi) — tạo đủ thư mục trước khi ghi
+      ghi: async (k, v) => { await mkdir(path.dirname(tep(k)), { recursive: true }); await writeFile(tep(k), JSON.stringify(v, null, 2)); },
       xoa: async (k) => rm(tep(k), { force: true }),
     };
   }

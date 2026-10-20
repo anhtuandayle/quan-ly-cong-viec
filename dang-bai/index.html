@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Đăng bài đa kênh</title>
+<title>Share social đa kênh</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -186,11 +186,12 @@
   <div class="khung">
     <div class="logo">⇪</div>
     <div>
-      <h1>Đăng bài đa kênh</h1>
-      <p>Dán link bài viết → xem trước → đăng lên mọi nơi cùng lúc</p>
+      <h1>Share social đa kênh</h1>
+      <p>Dán link bài viết → xem trước → share lên mọi nơi cùng lúc</p>
     </div>
     <div class="dau-phai">
-      <a class="chip" href="/" style="color:#fff;text-decoration:none">← Thư ký công việc</a>
+      <a class="chip" href="https://seongon.tro-ly-ai.workers.dev/" style="color:#fff;text-decoration:none">← Trợ lý AI</a>
+      <span class="chip" id="chipEmail" hidden></span>
       <span class="chip" id="chipAI">AI: chưa bật</span>
       <button class="nut phu nho" id="nutCaiDat">Cài đặt</button>
       <button class="nut phu nho" id="nutDangXuat">Đăng xuất</button>
@@ -199,24 +200,18 @@
 </header>
 
 <div id="manKhoa" hidden>
-  <form class="the hop-khoa" id="formKhoa">
+  <div class="the hop-khoa">
     <div class="logo" style="margin-bottom:12px">⇪</div>
-    <h2 id="mkTieuDe" style="margin:0 0 6px">Đăng nhập</h2>
-    <p id="mkMoTa" class="goi-y" style="font-size:14px;color:var(--chu-phu)"></p>
-    <div id="mkVungMa">
-      <label class="nhan" for="mkMa">Mã kích hoạt</label>
-      <input type="text" id="mkMa" placeholder="XXXXX-XXXXX-XXXXX-XXXXX" autocomplete="off" spellcheck="false">
-    </div>
-    <label class="nhan" for="mkMatKhau">Mật khẩu</label>
-    <input type="password" id="mkMatKhau" autocomplete="current-password" required>
-    <div id="mkVungNhapLai">
-      <label class="nhan" for="mkNhapLai">Nhập lại mật khẩu</label>
-      <input type="password" id="mkNhapLai" autocomplete="new-password">
-    </div>
+    <h2 style="margin:0 0 6px">Đăng nhập</h2>
+    <p class="goi-y" style="font-size:14px;color:var(--chu-phu)">
+      Đăng nhập bằng email SEONGON qua cổng <b>Trợ lý AI</b> — không cần mật khẩu riêng.
+      Mỗi người một không gian riêng: kết nối, khoá AI và dự án không lẫn sang người khác.
+    </p>
     <div class="trang-thai" id="ttKhoa"></div>
-    <button class="nut" id="mkNut" style="width:100%;margin-top:8px">Đăng nhập</button>
-    <p style="text-align:center;margin:14px 0 0;font-size:13.5px"><a href="#" id="mkQuen" style="color:var(--xanh)">Quên mật khẩu?</a></p>
-  </form>
+    <a class="nut" id="mkNut" href="https://seongon.tro-ly-ai.workers.dev/share-social/"
+       style="display:block;width:100%;margin-top:8px;text-align:center;text-decoration:none;box-sizing:border-box">
+      Đăng nhập bằng email SEONGON</a>
+  </div>
 </div>
 
 <main class="khung" style="margin-top:20px">
@@ -333,51 +328,56 @@ async function goi(duong, phuongThuc = "GET", duLieu) {
   } catch { throw new Error("Mất kết nối mạng. Kiểm tra internet rồi thử lại."); }
   let kq = {};
   try { kq = await r.json(); } catch {}
-  if (r.status === 401) { hienManKhoa("dang-nhap", "Phiên đăng nhập đã hết, anh/chị đăng nhập lại nhé."); throw new Error("Cần đăng nhập."); }
+  if (r.status === 401) { hienManKhoa("Phiên đăng nhập đã hết, anh/chị đăng nhập lại nhé."); throw new Error("Cần đăng nhập."); }
   if ((r.status === 502 || r.status === 504) && !kq.loi) throw new Error("Máy chủ xử lý quá lâu (quá 60 giây). Thử lại nhé.");
   if (!r.ok) throw new Error(kq.loi || `Lỗi ${r.status}`);
   return kq;
 }
 
-/* ---------------- Màn hình khoá (mật khẩu) ---------------- */
-function hienManKhoa(che, thongBao = "") {
-  const lanDau = che === "thiet-lap";
+/* ---------------- Màn hình đăng nhập (qua cổng Trợ lý AI, bằng email SEONGON) ---------------- */
+function hienManKhoa(thongBao = "") {
   $("#manKhoa").hidden = false;
   document.body.classList.add("dang-khoa");
-  $("#mkTieuDe").textContent = lanDau ? "Đặt mật khẩu cho ứng dụng" : "Đăng nhập";
-  $("#mkMoTa").textContent = lanDau
-    ? "Lần đầu dùng (hoặc quên mật khẩu): nhập mã kích hoạt em đã gửi anh, rồi tự đặt một mật khẩu từ 8 ký tự."
-    : "Ứng dụng giữ các mã kết nối Facebook/Telegram… nên cần mật khẩu để người khác không dùng được.";
-  $("#mkVungMa").hidden = !lanDau;
-  $("#mkVungNhapLai").hidden = !lanDau;
-  $("#mkQuen").hidden = lanDau;
-  $("#mkNut").textContent = lanDau ? "Lưu mật khẩu & vào ứng dụng" : "Đăng nhập";
-  $("#formKhoa").dataset.che = che;
-  hienTT($("#ttKhoa"), thongBao);
-  setTimeout(() => (lanDau ? $("#mkMa") : $("#mkMatKhau")).focus(), 50);
+  hienTT($("#ttKhoa"), thongBao, !!thongBao);
 }
 function anManKhoa() { $("#manKhoa").hidden = true; document.body.classList.remove("dang-khoa"); }
-$("#mkQuen").onclick = (e) => { e.preventDefault(); hienManKhoa("thiet-lap"); };
-$("#formKhoa").onsubmit = async (ev) => {
-  ev.preventDefault();
-  const che = ev.target.dataset.che;
-  const matKhau = $("#mkMatKhau").value;
-  if (che === "thiet-lap" && matKhau !== $("#mkNhapLai").value) { hienTT($("#ttKhoa"), "Hai lần nhập mật khẩu chưa giống nhau.", true); return; }
-  $("#mkNut").disabled = true;
-  hienTT($("#ttKhoa"), "Đang kiểm tra…", false, true);
-  try {
-    if (che === "thiet-lap") await goi("/thiet-lap", "POST", { ma_kich_hoat: $("#mkMa").value, mat_khau: matKhau });
-    else await goi("/dang-nhap", "POST", { mat_khau: matKhau });
-    $("#formKhoa").reset();
-    anManKhoa();
-    await khoiDong();
-  } catch (e) { hienTT($("#ttKhoa"), e.message, true); }
-  finally { $("#mkNut").disabled = false; }
-};
 $("#nutDangXuat").onclick = async () => {
   await goi("/dang-xuat", "POST").catch(() => {});
-  hienManKhoa("dang-nhap", "Đã đăng xuất.");
+  $("#chipEmail").hidden = true;
+  hienManKhoa("Đã đăng xuất.");
 };
+
+/* ---------------- Nhận dữ liệu của bản cũ (1 mật khẩu dùng chung) ---------------- */
+async function nhanDuLieuCu() {
+  const mk = $("#cuMatKhau").value;
+  if (!mk) return hienTT($("#ttCu"), "Nhập mật khẩu cũ của ứng dụng.", true);
+  $("#cuNut").disabled = true;
+  hienTT($("#ttCu"), "Đang chuyển dữ liệu…", false, true);
+  try {
+    const kq = await goi("/nhan-du-lieu-cu", "POST", { mat_khau: mk });
+    $("#hopDuLieuCu").remove();
+    hienTT($("#ttLay"), `Đã chuyển ${kq.so_ket_noi} kết nối cũ về tài khoản của anh/chị.`);
+    await khoiDong();
+  } catch (e) { hienTT($("#ttCu"), e.message, true); }
+  finally { const n = $("#cuNut"); if (n) n.disabled = false; }
+}
+function hienHopDuLieuCu() {
+  if ($("#hopDuLieuCu")) return;
+  const hop = document.createElement("section");
+  hop.className = "the";
+  hop.id = "hopDuLieuCu";
+  hop.innerHTML = `<h2 class="buoc" style="margin-top:0">📦 Nhận dữ liệu từ bản cũ</h2>
+    <p class="goi-y" style="font-size:14px;color:var(--chu-phu)">Bản trước dùng chung 1 mật khẩu. Nếu anh/chị là người đã cài các kết nối
+    ở bản đó, nhập <b>mật khẩu cũ</b> một lần để chuyển toàn bộ kết nối, khoá AI và dự án về tài khoản email của mình.
+    Sau khi chuyển, dữ liệu cũ bị xoá khỏi kho chung — người khác không nhận được nữa.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <input type="password" id="cuMatKhau" placeholder="Mật khẩu cũ" autocomplete="current-password" style="flex:1;min-width:200px">
+      <button class="nut" id="cuNut">Nhận dữ liệu cũ</button>
+    </div>
+    <div class="trang-thai" id="ttCu"></div>`;
+  $("main.khung").prepend(hop);
+  $("#cuNut").onclick = nhanDuLieuCu;
+}
 function hienTT(el, noiDung, loi = false, xoay = false) {
   el.className = "trang-thai" + (loi ? " loi" : "");
   el.innerHTML = (xoay ? '<span class="xoay"></span>' : "") + esc(noiDung);
@@ -1063,8 +1063,15 @@ function veBang(ds) {
 async function khoiDong() {
   try {
     const tt = await goi("/trang-thai");
-    if (!tt.da_thiet_lap) return hienManKhoa("thiet-lap");
-    if (!tt.da_dang_nhap) return hienManKhoa("dang-nhap");
+    if (!tt.da_dang_nhap) {
+      const veLoi = new URLSearchParams(location.search).get("loi") === "ve";
+      return hienManKhoa(veLoi ? "Vé đăng nhập đã hết hạn hoặc không hợp lệ — bấm nút bên dưới để vào lại." : "");
+    }
+    anManKhoa();
+    if (location.search) history.replaceState(null, "", location.pathname);
+    $("#chipEmail").textContent = tt.email;
+    $("#chipEmail").hidden = false;
+    if (tt.co_du_lieu_cu) hienHopDuLieuCu();
     trangThai.ai = tt.ai; trangThai.coGemini = tt.co_gemini; trangThai.coClaude = tt.co_claude; veAI();
     try { trangThai.duAn = localStorage.getItem("du_an_dang_chon") || ""; } catch {}
     await taiDuAn();
