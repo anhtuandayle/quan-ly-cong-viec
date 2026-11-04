@@ -86,7 +86,17 @@
     ],
     "goi_y_loi": {
       "403": "Mã kết nối không có quyền đăng vào blog này. Hãy bấm lại nút “Kết nối với WordPress.com”."
-    }
+    },
+    "lien_ket_nhanh": [
+      {
+        "nhan": "Tạo app WordPress.com",
+        "url": "https://developer.wordpress.com/apps/new/"
+      },
+      {
+        "nhan": "Danh sách app của bạn",
+        "url": "https://developer.wordpress.com/apps/"
+      }
+    ]
   },
   {
     "ten": "WordPress (tự cài)",
@@ -204,7 +214,17 @@
       "duong_dan_bai": "{{phan_hoi.url}}",
       "thong_bao_loi": "error"
     },
-    "thu_tu": 3
+    "thu_tu": 3,
+    "lien_ket_nhanh": [
+      {
+        "nhan": "Tạo ứng dụng trên mastodon.social",
+        "url": "https://mastodon.social/settings/applications/new"
+      },
+      {
+        "nhan": "Đăng ký tài khoản mastodon.social",
+        "url": "https://mastodon.social/auth/sign_up"
+      }
+    ]
   },
   {
     "ten": "Pinterest",
@@ -271,7 +291,21 @@
       "duong_dan_bai": "https://www.pinterest.com/pin/{{phan_hoi.id}}/",
       "thong_bao_loi": "message"
     },
-    "thu_tu": 4
+    "thu_tu": 4,
+    "lien_ket_nhanh": [
+      {
+        "nhan": "Chuyển sang tài khoản Business",
+        "url": "https://www.pinterest.com/business/convert/"
+      },
+      {
+        "nhan": "Tạo ứng dụng Pinterest",
+        "url": "https://developers.pinterest.com/apps/"
+      },
+      {
+        "nhan": "Bảng (board) của bạn",
+        "url": "https://www.pinterest.com/me/"
+      }
+    ]
   },
   {
     "ten": "LinkedIn",
@@ -335,7 +369,17 @@
       "duong_dan_bai": "https://www.linkedin.com/feed/update/{{dau_phan_hoi.x-restli-id}}/",
       "thong_bao_loi": "message"
     },
-    "thu_tu": 5
+    "thu_tu": 5,
+    "lien_ket_nhanh": [
+      {
+        "nhan": "Tạo app LinkedIn",
+        "url": "https://www.linkedin.com/developers/apps/new"
+      },
+      {
+        "nhan": "Công cụ lấy mã (Token generator)",
+        "url": "https://www.linkedin.com/developers/tools/oauth/token-generator"
+      }
+    ]
   },
   {
     "ten": "Blogger",
@@ -432,7 +476,25 @@
     "goi_y_loi": {
       "401": "Mã kết nối Google đã hết hiệu lực. Hãy bấm lại nút “Kết nối với Blogger” để lấy mã mới.",
       "403": "Tài khoản Google này không có quyền đăng vào blog đó, hoặc chưa bật Blogger API v3 trong Google Cloud."
-    }
+    },
+    "lien_ket_nhanh": [
+      {
+        "nhan": "1. Tạo dự án Google Cloud",
+        "url": "https://console.cloud.google.com/projectcreate"
+      },
+      {
+        "nhan": "2. Bật Blogger API",
+        "url": "https://console.cloud.google.com/apis/library/blogger.googleapis.com"
+      },
+      {
+        "nhan": "3. Màn hình đồng ý OAuth",
+        "url": "https://console.cloud.google.com/auth/branding"
+      },
+      {
+        "nhan": "4. Tạo OAuth client",
+        "url": "https://console.cloud.google.com/auth/clients/create"
+      }
+    ]
   },
   {
     "ten": "Instapaper",
@@ -478,7 +540,17 @@
     "thu_tu": 7,
     "goi_y_loi": {
       "403": "Sai email hoặc mật khẩu Instapaper. Nhớ vào Settings của Instapaper đặt mật khẩu trước (tài khoản đăng nhập bằng email không có mật khẩu sẽ không kết nối được)."
-    }
+    },
+    "lien_ket_nhanh": [
+      {
+        "nhan": "Xin mã ứng dụng Instapaper",
+        "url": "https://www.instapaper.com/main/request_oauth_consumer_token"
+      },
+      {
+        "nhan": "Đăng ký Instapaper",
+        "url": "https://www.instapaper.com/account/create"
+      }
+    ]
   },
   {
     "ten": "Facebook Page",
@@ -522,7 +594,21 @@
       "duong_dan_bai": "https://www.facebook.com/{{phan_hoi.post_id}}",
       "thong_bao_loi": "error.message"
     },
-    "thu_tu": 8
+    "thu_tu": 8,
+    "lien_ket_nhanh": [
+      {
+        "nhan": "Tạo ứng dụng Facebook",
+        "url": "https://developers.facebook.com/apps/creation/"
+      },
+      {
+        "nhan": "Graph API Explorer (lấy mã)",
+        "url": "https://developers.facebook.com/tools/explorer/"
+      },
+      {
+        "nhan": "Công cụ gỡ lỗi mã (đổi mã dài hạn)",
+        "url": "https://developers.facebook.com/tools/debug/accesstoken/"
+      }
+    ]
   },
   {
     "ten": "Telegram",
@@ -565,7 +651,13 @@
       "duong_dan_bai": "https://t.me/{{phan_hoi.result.chat.username}}/{{phan_hoi.result.message_id}}",
       "thong_bao_loi": "description"
     },
-    "thu_tu": 9
+    "thu_tu": 9,
+    "lien_ket_nhanh": [
+      {
+        "nhan": "Mở @BotFather",
+        "url": "https://t.me/BotFather"
+      }
+    ]
   },
   {
     "ten": "Webhook (Make / Zapier / n8n)",
@@ -615,6 +707,20 @@
       "duong_dan_bai": "{{phan_hoi.url}}",
       "thong_bao_loi": ""
     },
-    "thu_tu": 10
+    "thu_tu": 10,
+    "lien_ket_nhanh": [
+      {
+        "nhan": "Make.com — tạo kịch bản",
+        "url": "https://www.make.com/en/register"
+      },
+      {
+        "nhan": "Zapier — tạo Zap",
+        "url": "https://zapier.com/app/zaps"
+      },
+      {
+        "nhan": "n8n",
+        "url": "https://n8n.io/"
+      }
+    ]
   }
 ]

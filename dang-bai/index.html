@@ -99,6 +99,9 @@
   .hang-doi .dau { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-weight: 700; }
   .hang-doi table { margin-top: 8px; }
   .hang-doi td:first-child { max-width: 320px; }
+  .lien-ket-nhanh { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0; }
+  .lien-ket-nhanh a { text-decoration: none; }
+  .huong-dan a { color: var(--xanh); font-weight: 600; word-break: break-all; }
   .tieu-de-phan { font-size: 15px; margin: 22px 0 8px; padding-top: 14px; border-top: 1px dashed var(--vien); }
   .tieu-de-phan span { font-weight: 500; color: var(--chu-phu); font-size: 13px; }
   .da-tao { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1.5px solid var(--vien); border-radius: 12px; margin-bottom: 8px; background: #fff; }
@@ -320,6 +323,11 @@ const GIOI_HAN = 139;
 const $ = (s) => document.querySelector(s);
 const trangThai = { ai: false, bai: null, ketNoi: [], bieuMau: null, dangDang: false, cong: { lien_ket: false, du_an: [] }, boChon: new Set() };
 
+/** Đường dẫn trong hướng dẫn → link bấm được (mở tab mới). Nhận cả https://… lẫn tên miền trần như developers.facebook.com. */
+function moLink(html) {
+  return html.replace(/(https?:\/\/[^\s<]+[^\s<.,;:)])|\b((?:[a-z0-9-]+\.)+(?:com|org|net|io|social|me)(?:\/[^\s<]*[^\s<.,;:)])?)/gi, (m, full, bare) =>
+    `<a href="${full || "https://" + bare}" target="_blank" rel="noopener">${m}</a>`);
+}
 function esc(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
@@ -998,7 +1006,8 @@ function veBieuMau() {
       <h4>Kết nối ${esc(ten)}</h4>
       <div class="goi-y">${esc(ct.nguon || "")}</div>
       ${ct.ly_do ? `<div class="canh-bao">${esc(ct.ly_do)}</div>` : ""}
-      ${ct.huong_dan ? `<div class="huong-dan"><b>Cách lấy mã kết nối:</b>\n${esc(ct.huong_dan)}</div>` : ""}
+      ${(ct.lien_ket_nhanh || []).length ? `<div class="lien-ket-nhanh"><b>Bấm để mở nhanh:</b>${ct.lien_ket_nhanh.map((l) => `<a class="nut phu nho" href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.nhan)} ↗</a>`).join("")}</div>` : ""}
+      ${ct.huong_dan ? `<div class="huong-dan"><b>Cách lấy mã kết nối:</b>\n${moLink(esc(ct.huong_dan))}</div>` : ""}
       <label class="nhan" for="bmTen">Tên hiển thị</label>
       <input type="text" id="bmTen" value="${esc(ten)}">
       ${truong.map((t, i) => `
