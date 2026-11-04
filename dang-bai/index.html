@@ -566,6 +566,7 @@ function veDanhSachBai(kq) {
     <div class="ds-bai">
       <div class="dau"><span>${esc(kq.ten_muc)} — ${bai.length} bài</span>
         <button type="button" class="nut chu nho" id="dongDsBai">Đóng</button></div>
+      ${kq.cach_doc ? `<div class="goi-y" style="margin:4px 0 8px">Cách đọc: ${esc(kq.cach_doc)}</div>` : ""}
       <input type="text" id="locDsBai" placeholder="Gõ để lọc theo tên bài…" autocomplete="off">
       <ul id="dsBaiUl">${bai.map((b, i) => `<li>
         <label class="o-tich"><input type="checkbox" data-ch="${i}" aria-label="Chọn bài này"></label>

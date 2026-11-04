@@ -1,6 +1,7 @@
 // Lấy bài viết từ một đường dẫn: tiêu đề, nội dung toàn văn, ảnh đại diện.
 // Kèm bộ tóm tắt dự phòng (không cần AI) luôn trả về đoạn dưới 140 ký tự.
 import * as cheerio from "cheerio";
+import { chuTuKhoi, docBaiAmp, docBaiWordPress, khoiChinh } from "./doc-chung.mjs";
 
 export const GIOI_HAN_TOM_TAT = 139; // "dưới 140 ký tự" => tối đa 139
 export const TRINH_DUYET =
@@ -76,7 +77,7 @@ export function boTenTrang(tieuDe, tenTrang, tenMien) {
 const TRINH_DUYET_AO = "https://r.jina.ai/"; // dịch vụ miễn phí: mở trang như trình duyệt thật rồi trả lại HTML đầy đủ
 
 // Cho các trang "rỗng" (nội dung chỉ hiện ra sau khi chạy JavaScript, vd trang làm bằng React)
-async function taiQuaTrinhDuyetAo(url) {
+export async function taiQuaTrinhDuyetAo(url) {
   const r = await fetch(TRINH_DUYET_AO + url, {
     headers: { "X-Return-Format": "html", "User-Agent": "DangBaiDaKenh/1.0" },
     signal: AbortSignal.timeout(25000),
@@ -88,7 +89,7 @@ async function taiQuaTrinhDuyetAo(url) {
 async function docNhanh(url) {
   try {
     const t = await taiTrang(url);
-    return { kq: phanTich(t.html, url, t.urlCuoi), loiTai: null, urlCuoi: t.urlCuoi };
+    return { kq: phanTich(t.html, url, t.urlCuoi), loiTai: null, urlCuoi: t.urlCuoi, html: t.html };
   } catch (e) {
     if (!(e instanceof LoiNguoiDung)) throw e;
     return { kq: null, loiTai: e, urlCuoi: url };
@@ -118,8 +119,21 @@ export async function trichXuat(url, noiDungDan, quyTac) {
     const theoQuyTac = await docBai(quyTac, url);
     if (theoQuyTac && theoQuyTac.noi_dung.length >= 200) return theoQuyTac;
   }
-  let { kq, loiTai, urlCuoi } = await docNhanh(url);
+  let { kq, loiTai, urlCuoi, html } = await docNhanh(url);
+  // Trang WordPress: kho dữ liệu /wp-json cho nội dung đầy đủ nhất (kể cả trang dựng bằng JavaScript)
+  if (html) {
+    const wp = await docBaiWordPress(urlCuoi, html).catch(() => null);
+    if (wp && wp.noi_dung.length > Math.max(400, (kq?.noi_dung.length || 0) * 0.8)) {
+      return { ...(kq || { link_goc: url, ten_mien: new URL(urlCuoi).hostname.replace(/^www\./, ""), tieu_de_chac: true }),
+        tieu_de: wp.tieu_de || kq?.tieu_de || "", mo_ta: kq?.mo_ta || wp.mo_ta, noi_dung: wp.noi_dung, anh_url: kq?.anh_url || wp.anh_url,
+        cach_doc: "Đọc từ kho dữ liệu WordPress của trang" };
+    }
+  }
   if (kq && kq.noi_dung.length >= 400) return { ...kq, cach_doc: "Đọc trực tiếp" };
+  if (html && kq) {
+    const amp = await docBaiAmp(html, urlCuoi);
+    if (amp.length > Math.max(400, kq.noi_dung.length)) return { ...kq, noi_dung: amp, cach_doc: "Đọc bản AMP của trang" };
+  }
   try {
     const kqAo = phanTich(await taiQuaTrinhDuyetAo(url), url, urlCuoi);
     if (!kq || kqAo.noi_dung.length > kq.noi_dung.length) {
@@ -167,6 +181,12 @@ function phanTich(html, url, urlCuoi) {
   const thanLd = chuanHoa(baiLd.articleBody || "");
   if (thanLd.length > tong(noiDung)) noiDung = thanLd.split(/(?<=[.!?])\s+(?=\S)/);
   noiDung = [...new Set(noiDung)];
+  // Khối nội dung chính theo mật độ chữ: giữ đủ tiêu đề mục, gạch đầu dòng, bảng, chữ để trong <div>
+  try {
+    const khoi = khoiChinh($);
+    const coCauTruc = khoi ? chuTuKhoi($, khoi) : "";
+    if (coCauTruc.length > tong(noiDung) * 0.9) noiDung = coCauTruc.split("\n\n");
+  } catch {}
 
   let anh = meta["og:image"] || meta["og:image:url"] || meta["twitter:image"] || meta["twitter:image:src"] || anhTuLd(baiLd.image);
   if (!anh) {

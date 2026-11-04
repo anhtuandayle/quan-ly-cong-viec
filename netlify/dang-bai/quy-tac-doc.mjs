@@ -5,7 +5,8 @@
 // chỉ cho hệ thống: địa chỉ bài nào thì đọc ở kho dữ liệu nào, lấy tiêu đề/nội dung/ảnh ở đâu, và danh sách
 // toàn bộ bài của mục đó nằm ở đâu. Thêm trang mới = thêm quy tắc, không sửa mã nguồn.
 import * as cheerio from "cheerio";
-import { LoiNguoiDung, TRINH_DUYET, chuanHoa } from "./trich-xuat.mjs";
+import { LoiNguoiDung, TRINH_DUYET, chuanHoa, taiQuaTrinhDuyetAo } from "./trich-xuat.mjs";
+import { danhSachChung } from "./doc-chung.mjs";
 
 const TOI_DA_TRANG = 5; // mỗi lần lấy danh sách tối đa 5 trang dữ liệu
 const TOI_DA_BAI = 300;
@@ -89,8 +90,13 @@ export async function danhSachBai(quyTac, url) {
   const qt = timQuyTac(quyTac, url, true).qt || timQuyTac(quyTac, url).qt;
   const ds = qt?.danh_sach;
   if (!ds) {
-    throw new LoiNguoiDung("Chưa có cách lấy danh sách bài cho trang này. Anh/chị gửi link mục blog cho người lập trình "
-      + "để bổ sung, hoặc dán từng link bài như bình thường.");
+    // Trang chưa có quy tắc riêng → đọc chung: WordPress, gom link trên trang danh mục (+ trang sau), RSS, sitemap
+    let chung = null;
+    try { chung = await danhSachChung(url, taiQuaTrinhDuyetAo); } catch (e) {
+      throw new LoiNguoiDung(`Không mở được trang danh mục: ${e.message}`);
+    }
+    if (chung?.bai?.length) return chung;
+    throw new LoiNguoiDung("Không tìm thấy bài nào trong trang này. Hãy dán link của trang danh mục / blog (trang có liệt kê nhiều bài), hoặc dán từng link bài.");
   }
   const bai = [];
   let trang = 1, tong = 1;
