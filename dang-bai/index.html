@@ -41,6 +41,8 @@
   .nut.nho { padding: 7px 12px; font-size: 13.5px; }
   .nut.chu { background: none; color: var(--chu-phu); padding: 6px 8px; }
   .nut.chu:hover { color: var(--do); background: var(--do-nhat); }
+  .nut.xoa { background: #fff; color: var(--do); border: 1.5px solid var(--do); }
+  .nut.xoa:hover { background: var(--do); color: #fff; }
   header .nut.phu { background: rgba(255,255,255,.15); color: #fff; }
 
   input[type=text], input[type=url], input[type=password], textarea {
@@ -252,7 +254,7 @@
         <label for="chonDuAn">Dự án</label>
         <select id="chonDuAn"></select>
         <button type="button" class="nut phu nho" id="nutThemDuAn">+ Dự án mới</button>
-        <button type="button" class="nut chu nho" id="nutXoaDuAn" title="Xoá dự án đang chọn khỏi danh sách">Xoá dự án</button>
+        <button type="button" class="nut xoa nho" id="nutXoaDuAn" title="Xoá dự án đang chọn khỏi danh sách">🗑 Xoá dự án</button>
       </div>
       <div class="goi-y" id="ghiDuAn"></div>
       <h3 class="tieu-de-phan">A. Nền tảng tuỳ chọn <span>— tự kết nối thủ công</span></h3>
