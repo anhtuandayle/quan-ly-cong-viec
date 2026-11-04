@@ -329,6 +329,9 @@ export default async (req) => {
       kiemTraCongThuc(ct);
       delete ct.ly_do;
       const giaTri = Object.fromEntries(Object.entries(dl.gia_tri || {}).map(([k, v]) => [k, String(v).trim()]));
+      if (/tự cài/i.test(ct.ten || "") && /\.wordpress\.com/i.test(giaTri.dia_chi_trang || "")) {
+        return loi("Trang đuôi .wordpress.com là WordPress.com (không phải WordPress tự cài) — bấm nút “WordPress.com” ở phần Chọn nhanh nền tảng. Nếu trang này do Trợ lý tạo social tạo thì không cần kết nối: nó đã có sẵn ở phần B.");
+      }
       const thieu = (ct.truong || []).filter((t) => t.bat_buoc !== false && !giaTri[t.khoa]).map((t) => t.nhan);
       if (thieu.length) return loi("Còn thiếu: " + thieu.join(", "));
       const kn = { id: randomUUID().slice(0, 10), ten: chuanHoa(dl.ten || ct.ten || "Nền tảng"), bat: true,

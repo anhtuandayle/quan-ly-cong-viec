@@ -325,7 +325,7 @@ const trangThai = { ai: false, bai: null, ketNoi: [], bieuMau: null, dangDang: f
 
 /** Đường dẫn trong hướng dẫn → link bấm được (mở tab mới). Nhận cả https://… lẫn tên miền trần như developers.facebook.com. */
 function moLink(html) {
-  return html.replace(/(https?:\/\/[^\s<]+[^\s<.,;:)])|\b((?:[a-z0-9-]+\.)+(?:com|org|net|io|social|me)(?:\/[^\s<]*[^\s<.,;:)])?)/gi, (m, full, bare) =>
+  return html.replace(/(https?:\/\/[^\s<]+[^\s<.,;:)])|\b((?:[a-z0-9-]+\.){2,}(?:com|org|net|io|social|me)(?:\/[^\s<]*[^\s<.,;:)])?)/gi, (m, full, bare) =>
     `<a href="${full || "https://" + bare}" target="_blank" rel="noopener">${m}</a>`);
 }
 function esc(s) {
