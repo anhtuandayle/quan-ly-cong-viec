@@ -6,7 +6,7 @@ import { GIOI_HAN_TOM_TAT, LoiNguoiDung, chuanHoa, doDai, tomTatDonGian, trichXu
 import { dien, guiAnToan } from "../dang-bai/phan-phoi.mjs";
 import { moKho } from "../dang-bai/kho.mjs";
 import {
-  DIA_CHI_CONG, TEN_COOKIE, docPhienNguoi, docVeTuCong, dungMatKhau, taoBiMatPhien, taoPhienNguoi,
+  DIA_CHI_CONG, TEN_COOKIE, docPhienNguoi, docTheLienKet, docVeTuCong, dungMatKhau, taoBiMatPhien, taoPhienNguoi,
 } from "../dang-bai/bao-mat.mjs";
 
 const traJson = (duLieu, ma = 200, them = {}) =>
@@ -94,9 +94,29 @@ function kiemTraCongThuc(ct) {
   }
 }
 
-// Danh sách dự án: gồm dự án đã tạo trong cài đặt và dự án đang gắn với kết nối nào đó
+// ---------------------------------------------------------------- liên kết với Trợ lý tạo social (cổng)
+// Dùng chung 1 danh sách dự án với cổng; phần "nền tảng đã tạo" đăng bằng tài khoản đã kết nối bên cổng.
+const GOC_CONG = new URL(DIA_CHI_CONG).origin;
+async function goiCong(kho, duong, phuongThuc = "GET", duLieu) {
+  const lk = (await kho.doc("lien-ket-cong")) || {};
+  if (!lk.the) throw new LoiNguoiDung("Chưa liên kết với Trợ lý tạo social — mở Share social từ cổng Trợ lý AI để liên kết.");
+  const r = await fetch(`${GOC_CONG}/api/lien-ket${duong}`, {
+    method: phuongThuc,
+    headers: { Authorization: `Bearer ${lk.the}`, ...(duLieu ? { "Content-Type": "application/json" } : {}) },
+    body: duLieu ? JSON.stringify(duLieu) : undefined,
+    signal: AbortSignal.timeout(25000),
+  });
+  const kq = await r.json().catch(() => ({}));
+  if (r.status === 401) throw new LoiNguoiDung("Liên kết với Trợ lý tạo social đã hết hạn — mở Share social từ cổng Trợ lý AI để liên kết lại.");
+  if (!r.ok) throw new LoiNguoiDung(kq.error || `Trợ lý tạo social trả lỗi ${r.status}`);
+  return kq;
+}
+const duAnCong = async (kho) => (await goiCong(kho, "/du-an")).du_an || [];
+
+// Danh sách dự án: dự án của cổng (dùng chung) + dự án đã tạo trong cài đặt + dự án đang gắn với kết nối nào đó
 async function danhSachDuAn(kho) {
   const ds = [...(((await kho.doc("cai-dat")) || {}).du_an || [])];
+  try { for (const p of await duAnCong(kho)) if (!ds.some((x) => x.toLowerCase() === p.name.toLowerCase())) ds.push(p.name); } catch {}
   for (const kn of (await kho.doc("ket-noi")) || []) {
     if (kn.du_an && !ds.includes(kn.du_an)) ds.push(kn.du_an);
   }
@@ -135,6 +155,8 @@ export default async (req) => {
       if (!email) {
         return new Response(null, { status: 302, headers: { Location: `/dang-bai/?loi=ve`, "Cache-Control": "no-store" } });
       }
+      const the = docTheLienKet(url.searchParams.get("ve"));
+      if (the) await khoNguoi(khoChung, email).ghi("lien-ket-cong", { the, luc: new Date().toISOString() });
       const p = taoPhienNguoi(biMat, email);
       return new Response(null, {
         status: 302,
@@ -215,6 +237,14 @@ export default async (req) => {
       return traJson(await danhSachDuAn(kho));
     }
 
+    if (duong === "/du-an-cong" && pt === "GET") {
+      try {
+        return traJson({ lien_ket: true, du_an: await duAnCong(kho), dia_chi_cong: GOC_CONG });
+      } catch (e) {
+        return traJson({ lien_ket: false, ly_do: e.message, du_an: [], dia_chi_cong: GOC_CONG });
+      }
+    }
+
     if (duong === "/du-an" && pt === "POST") {
       const ten = chuanHoa(dl.ten || "");
       if (!ten) return loi("Hãy đặt tên cho dự án.");
@@ -224,6 +254,7 @@ export default async (req) => {
       ds.push(ten);
       caiDat.du_an = ds;
       await kho.ghi("cai-dat", caiDat);
+      try { await goiCong(kho, "/du-an", "POST", { ten }); } catch {}
       return traJson({ ds: await danhSachDuAn(kho) });
     }
 
@@ -344,8 +375,27 @@ export default async (req) => {
       }
       const duAn = chuanHoa(dl.du_an || "");
       const dangBat = ((await kho.doc("ket-noi")) || []).filter((kn) => kn.bat && (!duAn || (kn.du_an || "") === duAn));
-      if (!dangBat.length) return loi(`Chưa bật nền tảng nào để đăng${duAn ? ` trong dự án “${duAn}”` : ""}.`);
-      return traJson({ ket_qua: await Promise.all(dangBat.map((kn) => guiAnToan(kn, bai))) });
+      const daTao = Array.isArray(dl.da_tao) ? dl.da_tao.map(String).slice(0, 50) : [];
+      if (!dangBat.length && !daTao.length) return loi(`Chưa bật nền tảng nào để đăng${duAn ? ` trong dự án “${duAn}”` : ""}.`);
+      const [tuyChon, daTaoKq] = await Promise.all([
+        Promise.all(dangBat.map((kn) => guiAnToan(kn, bai))),
+        daTao.length && duAn
+          ? (async () => {
+              try {
+                const p = (await duAnCong(kho)).find((x) => x.name.toLowerCase() === duAn.toLowerCase());
+                if (!p) throw new LoiNguoiDung(`Dự án “${duAn}” chưa có bên Trợ lý tạo social`);
+                const kq = await goiCong(kho, "/dang", "POST", {
+                  du_an_id: p.id, chon: daTao, tieu_de: bai.tieu_de, tom_tat: bai.tom_tat,
+                  noi_dung: bai.bai_dai || bai.noi_dung, link_goc: bai.link_goc, anh_url: bai.anh_url,
+                });
+                return (kq.ket_qua || []).map((x) => ({ ten: `${x.platform} (đã tạo)`, thanh_cong: x.ok, duong_dan: x.url || "", loi: x.error || "" }));
+              } catch (e) {
+                return [{ ten: "Nền tảng đã tạo", thanh_cong: false, loi: e.message }];
+              }
+            })()
+          : [],
+      ]);
+      return traJson({ ket_qua: [...tuyChon, ...daTaoKq] });
     }
 
     // Đổi "mã cho phép" (code) nền tảng trả về sau khi bấm Approve thành mã kết nối lâu dài

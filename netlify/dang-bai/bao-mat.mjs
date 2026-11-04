@@ -61,6 +61,19 @@ export function docVeTuCong(ve) {
   }
 }
 
+/** Vé vào từ cổng còn mang kèm "vé liên kết" (cổng ký, sống 30 ngày) để Share social gọi sang Trợ lý tạo social. */
+export function docTheLienKet(ve) {
+  try {
+    const [phan, ky] = String(ve || "").split(".");
+    if (!phan || !ky) return "";
+    if (!verify("sha256", Buffer.from(phan), { key: KHOA_CONG_KHAI_CONG, dsaEncoding: "ieee-p1363" }, Buffer.from(ky, "base64url"))) return "";
+    const dl = JSON.parse(Buffer.from(phan, "base64url").toString("utf8"));
+    return typeof dl.the === "string" ? dl.the : "";
+  } catch {
+    return "";
+  }
+}
+
 /** Phiên gắn với email: `<hết hạn>.<email base64url>.<chữ ký HMAC>` — mỗi người một phiên, một luồng dữ liệu. */
 export function taoPhienNguoi(biMat, email) {
   const hetHan = Math.floor(Date.now() / 1000) + THOI_HAN_PHIEN;

@@ -97,6 +97,12 @@
   .hang-doi .dau { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-weight: 700; }
   .hang-doi table { margin-top: 8px; }
   .hang-doi td:first-child { max-width: 320px; }
+  .tieu-de-phan { font-size: 15px; margin: 22px 0 8px; padding-top: 14px; border-top: 1px dashed var(--vien); }
+  .tieu-de-phan span { font-weight: 500; color: var(--chu-phu); font-size: 13px; }
+  .da-tao { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1.5px solid var(--vien); border-radius: 12px; margin-bottom: 8px; background: #fff; }
+  .da-tao.tat { opacity: .55; }
+  .da-tao .thong-tin { flex: 1; min-width: 0; }
+  .da-tao a { word-break: break-all; }
   .hang-du-an { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
   .hang-du-an label { font-weight: 600; font-size: 13.5px; }
   .hang-du-an select, .kn select { border: 1.5px solid var(--vien); border-radius: 10px; padding: 8px 10px; background: #fff; font: inherit; }
@@ -241,7 +247,7 @@
     <!-- BƯỚC 2 -->
     <section class="the">
       <h2 class="buoc"><span class="so">2</span>Nơi đăng bài</h2>
-      <p class="mo-ta-buoc">Bật công tắc ở những nơi muốn đăng.</p>
+      <p class="mo-ta-buoc">Chọn dự án, rồi bật những nơi muốn đăng. Mỗi dự án có 2 phần: A — nền tảng anh/chị tự kết nối; B — social đã tạo bằng Trợ lý tạo social (kết nối tự động).</p>
       <div class="hang-du-an">
         <label for="chonDuAn">Dự án</label>
         <select id="chonDuAn"></select>
@@ -249,6 +255,7 @@
         <button type="button" class="nut chu nho" id="nutXoaDuAn" title="Xoá dự án đang chọn khỏi danh sách">Xoá dự án</button>
       </div>
       <div class="goi-y" id="ghiDuAn"></div>
+      <h3 class="tieu-de-phan">A. Nền tảng tuỳ chọn <span>— tự kết nối thủ công</span></h3>
       <div class="ds-ket-noi" id="dsKetNoi"></div>
       <div class="them-moi">
         <div class="nhan" style="margin-top:0">Chọn nhanh nền tảng</div>
@@ -261,6 +268,8 @@
         <div class="trang-thai" id="ttBieuMau"></div>
         <div id="vungBieuMau"></div>
       </div>
+      <h3 class="tieu-de-phan">B. Nền tảng đã tạo <span>— từ Trợ lý tạo social, kết nối tự động</span></h3>
+      <div id="dsDaTao"></div>
     </section>
   </div>
 
@@ -307,7 +316,7 @@
 <script>
 const GIOI_HAN = 139;
 const $ = (s) => document.querySelector(s);
-const trangThai = { ai: false, bai: null, ketNoi: [], bieuMau: null, dangDang: false };
+const trangThai = { ai: false, bai: null, ketNoi: [], bieuMau: null, dangDang: false, cong: { lien_ket: false, du_an: [] }, boChon: new Set() };
 
 function esc(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -502,11 +511,14 @@ function veHangDoi() {
 
 async function batDauHangDoi(ds) {
   const noiDang = trangThai.ketNoi.filter((k) => k.bat && (!trangThai.duAn || k.du_an === trangThai.duAn));
-  if (!noiDang.length) return hienTT($("#ttLay"), "Chưa bật nơi đăng nào cho dự án đang chọn.", true);
+  const daTao = daTaoChon();
+  const pCong = duAnCongDangChon();
+  const tenDaTao = pCong ? pCong.socials.filter((x) => daTao.includes(x.id)).map((x) => `${x.platform} (đã tạo)`) : [];
+  if (!noiDang.length && !daTao.length) return hienTT($("#ttLay"), "Chưa bật nơi đăng nào cho dự án đang chọn.", true);
   if (ds.length > 50) return hienTT($("#ttLay"), "Mỗi lần chỉ nên đăng tối đa 50 bài. Hãy bớt bài đã chọn.", true);
   const loai = trangThai.bai?.loai_bai || "ngan";
   const ten = loai === "ngan" ? "bài ngắn" : "bài dài";
-  if (!confirm(`Sẽ đăng ${ds.length} bài (bản ${ten}) lên: ${noiDang.map((k) => k.ten).join(", ")}.\n`
+  if (!confirm(`Sẽ đăng ${ds.length} bài (bản ${ten}) lên: ${[...noiDang.map((k) => k.ten), ...tenDaTao].join(", ")}.\n`
              + `Mỗi bài đăng thật ngay, không xem trước được. Tiếp tục?`)) return;
   trangThai.hangDoi = { ds: ds.map((b) => ({ ...b, tt: "cho", ket_qua: [] })), dangChay: true, dung: false };
   veHangDoi();
@@ -521,7 +533,7 @@ async function batDauHangDoi(ds) {
       m.tt = "dang"; veHangDoi();
       const kq = await goi("/dang-bai", "POST", {
         tieu_de: gon(bai.tieu_de), tom_tat: gon(bai.tom_tat), link_goc: bai.link_goc, anh_url: bai.anh_url,
-        loai_bai: loai, than_bai: than(loai), than_ngan: than("ngan"), than_dai: than("dai"), du_an: trangThai.duAn,
+        loai_bai: loai, than_bai: than(loai), than_ngan: than("ngan"), than_dai: than("dai"), du_an: trangThai.duAn, da_tao: daTao,
       });
       m.ket_qua = kq.ket_qua;
       m.tt = "xong";
@@ -762,6 +774,50 @@ function veChonDuAn() {
     ? `Đang xem dự án “${trangThai.duAn}” — ${soKenh} kênh. Kênh mới tạo sẽ thuộc dự án này, và chỉ những kênh này được đăng.`
     : "Đang xem tất cả kênh. Chọn một dự án để chỉ đăng lên kênh của dự án đó.";
   $("#nutXoaDuAn").style.display = trangThai.duAn ? "" : "none";
+  veDaTao();
+}
+/* ---------------- Phần B: social đã tạo bằng Trợ lý tạo social ---------------- */
+const duAnCongDangChon = () => (trangThai.cong.du_an || []).find((p) => p.name.toLowerCase() === (trangThai.duAn || "").toLowerCase());
+/** id các social đã tạo sẽ được đăng: mặc định tất cả (social share được), trừ cái anh/chị bỏ tích. */
+function daTaoChon() {
+  const p = duAnCongDangChon();
+  return p ? p.socials.filter((x) => x.share && !trangThai.boChon.has(x.id)).map((x) => x.id) : [];
+}
+function veDaTao() {
+  const vung = $("#dsDaTao");
+  if (!vung) return;
+  const cong = trangThai.cong, goc = cong.dia_chi_cong || "https://seongon.tro-ly-ai.workers.dev";
+  if (!cong.lien_ket) {
+    vung.innerHTML = `<div class="trong" style="padding:16px">${esc(cong.ly_do || "Chưa liên kết với Trợ lý tạo social.")}<br><a class="nut phu nho" style="margin-top:8px" href="${esc(goc)}/share-social/">Mở lại từ cổng Trợ lý AI để liên kết</a></div>`;
+    return capNhatNutDang();
+  }
+  if (!trangThai.duAn) {
+    vung.innerHTML = `<div class="trong" style="padding:16px">Chọn một dự án ở trên để xem các social đã tạo của dự án đó.</div>`;
+    return capNhatNutDang();
+  }
+  const p = duAnCongDangChon();
+  if (!p) {
+    vung.innerHTML = `<div class="trong" style="padding:16px">Dự án “${esc(trangThai.duAn)}” chưa có bên Trợ lý tạo social.</div>`;
+    return capNhatNutDang();
+  }
+  const taoThem = `<a class="nut phu nho" href="${esc(goc)}/tao-social?project=${encodeURIComponent(p.id)}" target="_blank" rel="noopener">+ Tạo thêm social cho dự án này</a>`;
+  vung.innerHTML = (p.socials.length
+    ? p.socials.map((x) => `
+      <label class="da-tao ${x.share && !trangThai.boChon.has(x.id) ? "" : "tat"}">
+        <input type="checkbox" data-da-tao="${esc(x.id)}" ${x.share ? "" : "disabled"} ${x.share && !trangThai.boChon.has(x.id) ? "checked" : ""}>
+        <span class="thong-tin"><b>${esc(x.platform)}</b> · <a href="${esc(x.siteUrl)}" target="_blank" rel="noopener">${esc(x.siteUrl)}</a>
+        ${x.share ? "" : `<div class="goi-y">${esc(x.ly_do)}</div>`}</span>
+      </label>`).join("")
+    : `<div class="trong" style="padding:16px">Dự án này chưa tạo social nào.</div>`) + `<div style="margin-top:6px">${taoThem}</div>`;
+  vung.querySelectorAll("[data-da-tao]").forEach((o) => (o.onchange = () => {
+    if (o.checked) trangThai.boChon.delete(o.dataset.daTao); else trangThai.boChon.add(o.dataset.daTao);
+    veDaTao();
+  }));
+  capNhatNutDang();
+}
+async function taiCong() {
+  try { trangThai.cong = await goi("/du-an-cong"); } catch (e) { trangThai.cong = { lien_ket: false, ly_do: e.message, du_an: [] }; }
+  veDaTao();
 }
 async function taiDuAn() {
   try { trangThai.duAnDs = await goi("/du-an"); } catch { trangThai.duAnDs = []; }
@@ -783,12 +839,14 @@ $("#nutThemDuAn").onclick = async () => {
     try { localStorage.setItem("du_an_dang_chon", ten); } catch {}
     veKetNoi();
     veChonDuAn();
-    hienTT($("#ttBieuMau"), `Đã tạo dự án “${ten}”. Giờ anh/chị kết nối các kênh cho dự án này.`);
+    hienTT($("#ttBieuMau"), `Đã tạo dự án “${ten}” (dùng chung với Trợ lý tạo social). Giờ anh/chị kết nối các kênh cho dự án này.`);
+    taiCong();
   } catch (e) { hienTT($("#ttBieuMau"), e.message, true); }
 };
 $("#nutXoaDuAn").onclick = async () => {
   const ten = trangThai.duAn;
   if (!ten) return;
+  if (duAnCongDangChon()) return alert(`Dự án “${ten}” dùng chung với Trợ lý tạo social — muốn xoá thì xoá ở Trợ lý tạo social (nút Xoá dự án), để không lệch dữ liệu giữa 2 bên.`);
   if (!confirm(`Xoá dự án “${ten}” khỏi danh sách?\nCác kênh của dự án này KHÔNG bị xoá, chúng chuyển về mục "chưa xếp dự án".`)) return;
   try {
     const kq = await goi("/du-an-xoa", "POST", { ten });
@@ -1004,13 +1062,13 @@ function lyDoChuaDang() {
   const gh = b.gioi_han_bai[b.loai_bai];
   if (!thanBai(b.loai_bai)) return `${TEN_LOAI[b.loai_bai]} chưa có nội dung.`;
   if (doDai(baiDayDu(b.loai_bai)) > gh) return `${TEN_LOAI[b.loai_bai]} đang ${doDai(baiDayDu(b.loai_bai))} ký tự — tối đa ${gh}.`;
-  if (!trangThai.ketNoi.some((k) => k.bat && (!trangThai.duAn || k.du_an === trangThai.duAn)))
+  if (!trangThai.ketNoi.some((k) => k.bat && (!trangThai.duAn || k.du_an === trangThai.duAn)) && !daTaoChon().length)
     return trangThai.duAn ? `Dự án “${trangThai.duAn}” chưa bật nơi đăng nào.` : "Chưa bật nơi đăng nào ở bước 2.";
   return "";
 }
 function capNhatNutDang() {
   const lyDo = lyDoChuaDang();
-  const soNoi = trangThai.ketNoi.filter((k) => k.bat && (!trangThai.duAn || k.du_an === trangThai.duAn)).length;
+  const soNoi = trangThai.ketNoi.filter((k) => k.bat && (!trangThai.duAn || k.du_an === trangThai.duAn)).length + daTaoChon().length;
   const nut = $("#nutDang");
   nut.disabled = !!lyDo || trangThai.dangDang;
   if (!trangThai.dangDang) nut.textContent = soNoi ? `Đăng ${trangThai.bai ? TEN_LOAI[trangThai.bai.loai_bai || "ngan"].toLowerCase() : "bài"} lên ${soNoi} nơi đang bật` : "Đăng bài";
@@ -1018,18 +1076,20 @@ function capNhatNutDang() {
 }
 $("#nutDang").onclick = async () => {
   const b = trangThai.bai;
-  const noiDang = trangThai.ketNoi.filter((k) => k.bat);
+  const noiDang = trangThai.ketNoi.filter((k) => k.bat && (!trangThai.duAn || k.du_an === trangThai.duAn));
+  const daTao = daTaoChon();
+  const pCong = duAnCongDangChon();
   trangThai.dangDang = true;
   const nut = $("#nutDang");
   nut.disabled = true;
   nut.innerHTML = '<span class="xoay"></span>Đang đăng…';
-  veBang(noiDang.map((k) => ({ ten: k.ten, cho: true })));
+  veBang([...noiDang.map((k) => ({ ten: k.ten, cho: true })), ...(pCong ? pCong.socials.filter((x) => daTao.includes(x.id)).map((x) => ({ ten: `${x.platform} (đã tạo)`, cho: true })) : [])]);
   try {
     const kq = await goi("/dang-bai", "POST", {
       tieu_de: gon(b.tieu_de), tom_tat: gon(b.tom_tat), link_goc: b.link_goc, du_an: trangThai.duAn,
       loai_bai: b.loai_bai, than_bai: thanBai(b.loai_bai),
       than_ngan: thanBai("ngan"), than_dai: thanBai("dai"),
-      anh_url: b.anh_url, anh_tai_len: b.anh_tai_len,
+      anh_url: b.anh_url, anh_tai_len: b.anh_tai_len, da_tao: daTao,
     });
     veBang(kq.ket_qua);
   } catch (e) {
@@ -1075,6 +1135,7 @@ async function khoiDong() {
     trangThai.ai = tt.ai; trangThai.coGemini = tt.co_gemini; trangThai.coClaude = tt.co_claude; veAI();
     try { trangThai.duAn = localStorage.getItem("du_an_dang_chon") || ""; } catch {}
     await taiDuAn();
+    await taiCong();
     await taiKetNoi();
     await taiDanhSachNenTang();
     await xuLyOauthQuayVe();
