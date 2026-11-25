@@ -992,7 +992,8 @@ async function xuLyOauthQuayVe() {
       if (o && kq.ket_qua?.[nguon]) { o.value = kq.ket_qua[nguon]; xong++; }
     }
     if (!xong) throw new Error("Nền tảng chưa cấp mã dùng lâu dài. Hãy thử lại và nhớ bấm Cho phép (Allow).");
-    hienTT($("#ttLuuKN"), "Đã lấy được mã kết nối. Bấm “Lưu kết nối” để hoàn tất.");
+    hienTT($("#ttLuuKN"), "Đã lấy được mã kết nối — đang lưu…", false, true);
+    await luuKetNoi(); // lưu luôn, không bắt bấm thêm nút (lỗi thì báo ngay trong khung)
   } catch (e) { hienTT($("#ttLuuKN"), e.message, true); }
 }
 function congThucSach(ct) {
@@ -1140,7 +1141,8 @@ async function khoiDong() {
       return hienManKhoa(veLoi ? "Vé đăng nhập đã hết hạn hoặc không hợp lệ — bấm nút bên dưới để vào lại." : "");
     }
     anManKhoa();
-    if (location.search) history.replaceState(null, "", location.pathname);
+    // Giữ lại ?code=… / ?error=… khi nền tảng (WordPress.com, Blogger) trả về sau bấm Cho phép — xuLyOauthQuayVe() cần đọc
+    if (location.search && !/[?&](code|error)=/.test(location.search)) history.replaceState(null, "", location.pathname);
     $("#chipEmail").textContent = tt.email;
     $("#chipEmail").hidden = false;
     if (tt.co_du_lieu_cu) hienHopDuLieuCu();
