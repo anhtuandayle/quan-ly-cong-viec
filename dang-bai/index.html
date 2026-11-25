@@ -99,6 +99,23 @@
   .hang-doi .dau { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; font-weight: 700; }
   .hang-doi table { margin-top: 8px; }
   .hang-doi td:first-child { max-width: 320px; }
+  .quy-tac-dang { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; margin: 10px 0 6px; font-size: 14px; }
+  .quy-tac-dang select, .quy-tac-dang input { width: auto; max-width: 100%; padding: 5px 8px; border: 1.5px solid var(--vien); border-radius: 8px; font: inherit; margin-left: 6px; }
+  .quy-tac-dang input[type=number] { width: 70px; }
+  .ds-xem-truoc { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+  .muc-xt { border: 1px solid var(--vien); border-radius: 10px; padding: 8px 10px; background: #fff; }
+  .muc-xt.tat { opacity: .55; }
+  .muc-dau { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .muc-ten { flex: 1; min-width: 180px; font-weight: 600; }
+  .muc-tt { font-size: 13px; }
+  .muc-than summary { cursor: pointer; font-size: 13px; color: var(--chu-phu); margin-top: 4px; }
+  .muc-luoi { display: grid; grid-template-columns: 1fr 160px; gap: 12px; margin-top: 6px; }
+  .muc-anh img { width: 100%; border-radius: 8px; border: 1px solid var(--vien); }
+  .muc-anh .khong-anh { padding: 20px 6px; text-align: center; font-size: 12px; color: var(--chu-mo); background: var(--nen); border-radius: 8px; }
+  .ds-dong-sheet { list-style: none; padding: 0; margin: 8px 0; max-height: 280px; overflow: auto; border: 1px solid var(--vien); border-radius: 10px; }
+  .ds-dong-sheet li { display: flex; gap: 8px; align-items: center; padding: 6px 10px; border-top: 1px solid var(--vien); font-size: 13.5px; }
+  .ds-dong-sheet li:first-child { border-top: 0; }
+  @media (max-width: 640px) { .muc-luoi { grid-template-columns: 1fr; } }
   .lien-ket-nhanh { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 10px 0; }
   .lien-ket-nhanh a { text-decoration: none; }
   .huong-dan a { color: var(--xanh); font-weight: 600; word-break: break-all; }
@@ -234,10 +251,12 @@
       <button class="nut" id="nutLay">Lấy bài</button>
       <button class="nut phu" id="nutDanhSach" type="button" title="Lấy danh sách tất cả bài của mục này">Danh sách bài</button>
       <button class="nut phu" id="nutNhieuLink" type="button" title="Dán nhiều đường dẫn, mỗi dòng một bài">Dán nhiều link</button>
+      <button class="nut phu" id="nutSheet" type="button" title="Lấy link bài từ Google Sheet, đăng xong ghi link vào sheet">Đọc từ Google Sheet</button>
     </form>
     <div class="trang-thai" id="ttLay"></div>
     <div id="vungDanLoi"></div>
     <div id="vungNhieuLink"></div>
+    <div id="vungSheet"></div>
     <div id="vungDanhSach"></div>
   </section>
 
@@ -485,78 +504,330 @@ $("#nutNhieuLink").onclick = () => {
   };
 };
 
-/* ---------------- Đăng hàng loạt: chạy cuốn chiếu từng bài ---------------- */
-const NGHI_GIUA_BAI = 4000; // nghỉ 4 giây giữa 2 bài cho nhẹ nền tảng
+/* ---------------- Đăng hàng loạt: soạn trước → xem & sửa từng bài → đăng cách nhau N phút ---------------- */
 const doiMs = (ms) => new Promise((r) => setTimeout(r, ms));
-
+const KHOANG_MAC_DINH = 5; // phút giữa 2 bài
+function khoangPhut() {
+  let v = KHOANG_MAC_DINH;
+  try { const s = localStorage.getItem("khoang_phut"); if (s !== null && Number(s) >= 0) v = Number(s); } catch {}
+  return v;
+}
+const mmss = (ms) => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; };
+const thanMuc = (m, loai) => (m.bai["bai_" + loai] || "").replace(/\r/g, "").trim();
+function loiMuc(m, loai) {
+  if (!m.bai) return "";
+  if (!gon(m.bai.tieu_de)) return "Chưa có tiêu đề.";
+  const n = doDai(gon(m.bai.tom_tat));
+  if (!n) return "Chưa có mô tả 1 câu.";
+  if (n > GIOI_HAN) return `Mô tả ${n} ký tự — tối đa ${GIOI_HAN}.`;
+  if (!thanMuc(m, loai)) return "Chưa có nội dung bài.";
+  const d = doDai(`${thanMuc(m, loai)}\n\n${m.bai.dong_cuoi}`), gh = m.bai.gioi_han_bai[loai];
+  if (d > gh) return `Bài ${d} ký tự — tối đa ${gh}.`;
+  return "";
+}
+function nhanTT(m, hd) {
+  switch (m.tt) {
+    case "cho_soan": return '<span class="goi-y">Chờ soạn</span>';
+    case "soan": return '<span class="nhan-tt cho"><span class="xoay"></span>Đang soạn bài…</span>';
+    case "loi_soan": return `<span class="nhan-tt hong">✕ Không soạn được</span> <span class="loi-chi-tiet">${esc(m.loi)}</span>`;
+    case "san_sang": return m.chon ? '<span class="goi-y">Sẵn sàng</span>' : '<span class="goi-y">Bỏ qua (đã bỏ tích)</span>';
+    case "doi": return `<span class="nhan-tt cho"><span class="xoay"></span>Đăng sau <b data-dem-nguoc>${mmss(hd.denLuc - Date.now())}</b></span>`;
+    case "dang": return '<span class="nhan-tt cho"><span class="xoay"></span>Đang đăng…</span>';
+    case "loi": return `<span class="nhan-tt hong">✕ Lỗi</span> <span class="loi-chi-tiet">${esc(m.loi)}</span>`;
+    case "bo_qua": return '<span class="goi-y">Đã bỏ qua</span>';
+    case "xong": return `<span class="nhan-tt ok">✓ ${m.ket_qua.filter((k) => k.thanh_cong).length}/${m.ket_qua.length} nơi</span>`
+      + m.ket_qua.map((k) => k.thanh_cong
+          ? `<div>${esc(k.ten)}: ${k.duong_dan ? `<a href="${esc(k.duong_dan)}" target="_blank" rel="noopener">xem bài</a>` : "đã đăng"}</div>`
+          : `<div class="loi-chi-tiet">${esc(k.ten)}: ${esc(k.loi)}</div>`).join("")
+      + (m.sheet ? `<div class="goi-y">${esc(m.sheet)}</div>` : "");
+  }
+  return "";
+}
+const khoaSua = (m) => ["dang", "xong", "loi", "bo_qua"].includes(m.tt);
 function veHangDoi() {
   const hd = trangThai.hangDoi;
   if (!hd) return ($("#vungHangDoi").innerHTML = "");
-  const xong = hd.ds.filter((m) => m.tt === "xong" || m.tt === "loi").length;
-  const nhan = { cho: "Đang chờ", soan: "Đang soạn bài…", dang: "Đang đăng…", xong: "Xong", loi: "Lỗi", bo_qua: "Đã bỏ qua" };
+  const loai = hd.loai;
+  const dangSoan = hd.ds.some((m) => m.tt === "cho_soan" || m.tt === "soan");
+  const chon = hd.ds.filter((m) => m.tt === "san_sang" && m.chon);
+  const loiChon = chon.filter((m) => loiMuc(m, loai));
+  const daDang = hd.ds.filter((m) => m.tt === "xong" || m.tt === "loi").length;
+  const tieuDe = hd.pha === "xem"
+    ? (dangSoan ? `Đang soạn ${hd.ds.filter((m) => m.bai || m.tt === "loi_soan").length}/${hd.ds.length} bài — xem được ngay khi từng bài soạn xong`
+                : `Xem trước ${hd.ds.length} bài — sửa nếu cần, bỏ tích bài không muốn đăng`)
+    : `Đăng hàng loạt: ${daDang}/${hd.ds.filter((m) => m.chon && m.bai).length} bài${hd.dangChay ? "" : hd.dung ? " — đã dừng" : " — xong"}`;
   $("#vungHangDoi").innerHTML = `
     <div class="hang-doi">
-      <div class="dau">
-        <span>Đăng hàng loạt: ${xong}/${hd.ds.length} bài${hd.dangChay ? "" : " — đã dừng"}</span>
-        ${hd.dangChay ? '<button type="button" class="nut chu nho" id="nutDungLoat">Dừng sau bài này</button>'
+      <div class="dau"><span>${tieuDe}</span>
+        ${hd.dangChay ? '<button type="button" class="nut chu nho" id="nutDungLoat">Dừng</button>'
                       : '<button type="button" class="nut chu nho" id="nutDongLoat">Đóng</button>'}
       </div>
-      <table><thead><tr><th>Bài</th><th>Trạng thái</th><th>Kết quả</th></tr></thead><tbody>
-      ${hd.ds.map((m) => `<tr>
-        <td>${esc(m.tieu_de)}</td>
-        <td>${m.tt === "xong" ? `<span class="nhan-tt ok">✓ ${m.ket_qua.filter((k) => k.thanh_cong).length}/${m.ket_qua.length} nơi</span>`
-            : m.tt === "loi" ? '<span class="nhan-tt hong">✕ Lỗi</span>'
-            : m.tt === "cho" || m.tt === "bo_qua" ? `<span class="goi-y">${nhan[m.tt]}</span>`
-            : `<span class="nhan-tt cho"><span class="xoay"></span>${nhan[m.tt]}</span>`}</td>
-        <td>${m.tt === "loi" ? `<span class="loi-chi-tiet">${esc(m.loi)}</span>`
-            : (m.ket_qua || []).map((k) => k.thanh_cong
-                ? `<div>${esc(k.ten)}: ${k.duong_dan ? `<a href="${esc(k.duong_dan)}" target="_blank" rel="noopener">xem bài</a>` : "đã đăng"}</div>`
-                : `<div class="loi-chi-tiet">${esc(k.ten)}: ${esc(k.loi)}</div>`).join("")}</td>
-      </tr>`).join("")}
-      </tbody></table>
+      <div class="quy-tac-dang">
+        <label>Bản đăng
+          <select id="hdLoai" ${hd.pha !== "xem" ? "disabled" : ""}>
+            <option value="ngan"${loai === "ngan" ? " selected" : ""}>Bài ngắn</option>
+            <option value="dai"${loai === "dai" ? " selected" : ""}>Bài dài</option>
+          </select></label>
+        <label>Mỗi bài cách nhau
+          <input type="number" id="hdKhoang" min="0" max="240" step="1" value="${hd.khoang}" ${hd.pha !== "xem" ? "disabled" : ""}> phút</label>
+        <span class="goi-y">Nơi đăng: ${esc(hd.tenNoi.join(", "))}</span>
+      </div>
+      ${hd.sheet ? `<div class="goi-y">📄 Ghi kết quả vào sheet: tab “${esc(hd.sheet.tab)}”, cột ${esc(hd.sheet.cotGhi)}</div>` : ""}
+      <div class="ds-xem-truoc">
+      ${hd.ds.map((m, i) => {
+        const khoa = khoaSua(m);
+        const loi = m.bai && m.chon && !khoa ? loiMuc(m, loai) : "";
+        return `<div class="muc-xt ${m.chon ? "" : "tat"}" data-muc="${i}">
+          <div class="muc-dau">
+            <label class="o-tich"><input type="checkbox" data-chon="${i}" ${m.chon ? "checked" : ""} ${!m.bai || khoa || hd.pha !== "xem" ? "disabled" : ""}></label>
+            <b class="muc-so">${i + 1}.</b>
+            <span class="muc-ten">${esc(m.bai ? m.bai.tieu_de : m.tieu_de)}</span>
+            <span class="muc-tt" data-tt="${i}">${nhanTT(m, hd)}</span>
+          </div>
+          ${m.bai ? `<details class="muc-than">
+            <summary>Xem trước &amp; sửa${loi ? ` <span class="loi-chi-tiet">— ${esc(loi)}</span>` : ""}</summary>
+            <div class="muc-luoi">
+              <div>
+                <label class="nhan">Tiêu đề</label>
+                <input type="text" data-sua="tieu_de" data-i="${i}" value="${esc(m.bai.tieu_de)}" ${khoa ? "disabled" : ""}>
+                <label class="nhan">${TEN_LOAI[loai]} <span class="dem" data-dem="${i}"></span></label>
+                <textarea rows="${loai === "ngan" ? 5 : 9}" data-sua="bai_${loai}" data-i="${i}" ${khoa ? "disabled" : ""}>${esc(m.bai["bai_" + loai])}</textarea>
+                <div class="dong-khoa">🔒 ${esc(m.bai.dong_cuoi)}</div>
+                <label class="nhan">Mô tả 1 câu (dưới 140 ký tự)</label>
+                <textarea rows="2" data-sua="tom_tat" data-i="${i}" ${khoa ? "disabled" : ""}>${esc(m.bai.tom_tat)}</textarea>
+              </div>
+              <div class="muc-anh">${m.bai.anh_url ? `<img src="${esc(m.bai.anh_url)}" alt="" referrerpolicy="no-referrer">` : '<div class="khong-anh">Không có ảnh</div>'}
+                <a href="${esc(m.bai.link_goc)}" target="_blank" rel="noopener" class="goi-y">Bài gốc ↗</a></div>
+            </div>
+          </details>` : ""}
+        </div>`;
+      }).join("")}
+      </div>
+      ${hd.pha === "xem" ? `
+        <div class="dong-dang" style="margin-top:12px">
+          <button class="nut" id="nutBatDauLoat" ${dangSoan || !chon.length || loiChon.length ? "disabled" : ""}>
+            Đăng ${chon.length} bài — cách nhau ${hd.khoang} phút</button>
+          <span class="ly-do" id="lyDoLoat">${dangSoan ? "Chờ soạn xong tất cả bài…" : loiChon.length ? `Còn ${loiChon.length} bài cần sửa (mở “Xem trước & sửa” để xem lỗi) hoặc bỏ tích.` : chon.length ? `Dự kiến xong sau khoảng ${Math.max(0, chon.length - 1) * hd.khoang} phút. Giữ tab này mở trong lúc đăng.` : "Chưa chọn bài nào."}</span>
+        </div>` : hd.dangChay ? `<div class="goi-y" style="margin-top:10px">⚠ Giữ tab này mở (chuyển sang tab khác vẫn được) cho tới khi đăng xong. Bài chưa tới lượt vẫn sửa được.</div>` : ""}
     </div>`;
-  if ($("#nutDungLoat")) $("#nutDungLoat").onclick = () => { hd.dung = true; hienTT($("#ttLay"), "Sẽ dừng sau khi xong bài đang chạy…"); };
+  if ($("#nutDungLoat")) $("#nutDungLoat").onclick = () => {
+    hd.dung = true;
+    hienTT($("#ttLay"), hd.pha === "xem" ? "Đã dừng soạn." : "Đã dừng — bài đang đăng (nếu có) chạy nốt, các bài sau được bỏ qua.");
+  };
   if ($("#nutDongLoat")) $("#nutDongLoat").onclick = () => { trangThai.hangDoi = null; veHangDoi(); };
+  if ($("#hdLoai")) $("#hdLoai").onchange = (e) => { hd.loai = e.target.value; veHangDoi(); };
+  if ($("#hdKhoang")) $("#hdKhoang").onchange = (e) => {
+    hd.khoang = Math.min(240, Math.max(0, Math.round(Number(e.target.value) || 0)));
+    try { localStorage.setItem("khoang_phut", String(hd.khoang)); } catch {}
+    veHangDoi();
+  };
+  $("#vungHangDoi").querySelectorAll("[data-chon]").forEach((o) => o.onchange = () => { hd.ds[o.dataset.chon].chon = o.checked; veHangDoi(); });
+  $("#vungHangDoi").querySelectorAll("[data-sua]").forEach((o) => o.oninput = () => {
+    const m = hd.ds[o.dataset.i];
+    m.bai[o.dataset.sua] = o.value;
+    if (o.dataset.sua === "tieu_de") o.closest(".muc-xt").querySelector(".muc-ten").textContent = o.value;
+    demMuc(o.dataset.i);
+  });
+  hd.ds.forEach((m, i) => m.bai && demMuc(i));
+  if ($("#nutBatDauLoat")) $("#nutBatDauLoat").onclick = () => dangHangDoi();
+  // giữ nguyên ô nào đang mở khi vẽ lại
+  $("#vungHangDoi").querySelectorAll("details.muc-than").forEach((d) => {
+    const i = d.closest(".muc-xt").dataset.muc;
+    d.open = hd.mo.has(i);
+    d.ontoggle = () => { d.open ? hd.mo.add(i) : hd.mo.delete(i); };
+  });
+}
+function demMuc(i) {
+  const hd = trangThai.hangDoi, m = hd.ds[i], d = document.querySelector(`[data-dem="${i}"]`);
+  if (!d || !m.bai) return;
+  const n = doDai(`${thanMuc(m, hd.loai)}\n\n${m.bai.dong_cuoi}`), gh = m.bai.gioi_han_bai[hd.loai];
+  d.textContent = `${n}/${gh}`;
+  d.classList.toggle("qua", n > gh);
+  const nut = $("#nutBatDauLoat");
+  if (nut && hd.pha === "xem") {
+    const chon = hd.ds.filter((x) => x.tt === "san_sang" && x.chon);
+    const soLoi = chon.filter((x) => loiMuc(x, hd.loai)).length;
+    const dangSoan = hd.ds.some((x) => x.tt === "cho_soan" || x.tt === "soan");
+    nut.disabled = !chon.length || soLoi > 0 || dangSoan;
+    if (!dangSoan) $("#lyDoLoat").textContent = soLoi ? `Còn ${soLoi} bài cần sửa hoặc bỏ tích.` : chon.length ? `Dự kiến xong sau khoảng ${Math.max(0, chon.length - 1) * hd.khoang} phút. Giữ tab này mở trong lúc đăng.` : "Chưa chọn bài nào.";
+  }
+}
+// chỉ cập nhật ô trạng thái (không vẽ lại cả khung → không mất chữ đang gõ)
+function capNhatTT(i) {
+  const hd = trangThai.hangDoi, o = document.querySelector(`[data-tt="${i}"]`);
+  if (o) o.innerHTML = nhanTT(hd.ds[i], hd);
 }
 
-async function batDauHangDoi(ds) {
+// Bước A: soạn trước tất cả bài đã chọn để xem trước. ds: [{tieu_de, link, dong?}]; sheet: thông tin ghi ngược (nếu đọc từ sheet)
+async function batDauHangDoi(ds, sheet = null) {
   const noiDang = trangThai.ketNoi.filter((k) => k.bat && (!trangThai.duAn || k.du_an === trangThai.duAn));
   const daTao = daTaoChon();
   const pCong = duAnCongDangChon();
   const tenDaTao = pCong ? pCong.socials.filter((x) => daTao.includes(x.id)).map((x) => `${x.platform} (đã tạo)`) : [];
   if (!noiDang.length && !daTao.length) return hienTT($("#ttLay"), "Chưa bật nơi đăng nào cho dự án đang chọn.", true);
   if (ds.length > 50) return hienTT($("#ttLay"), "Mỗi lần chỉ nên đăng tối đa 50 bài. Hãy bớt bài đã chọn.", true);
-  const loai = trangThai.bai?.loai_bai || "ngan";
-  const ten = loai === "ngan" ? "bài ngắn" : "bài dài";
-  if (!confirm(`Sẽ đăng ${ds.length} bài (bản ${ten}) lên: ${[...noiDang.map((k) => k.ten), ...tenDaTao].join(", ")}.\n`
-             + `Mỗi bài đăng thật ngay, không xem trước được. Tiếp tục?`)) return;
-  trangThai.hangDoi = { ds: ds.map((b) => ({ ...b, tt: "cho", ket_qua: [] })), dangChay: true, dung: false };
+  if (trangThai.hangDoi?.dangChay) return hienTT($("#ttLay"), "Đang có một lượt đăng hàng loạt chạy — dừng lượt đó trước.", true);
+  const hd = trangThai.hangDoi = {
+    ds: ds.map((b) => ({ ...b, tt: "cho_soan", chon: true, ket_qua: [], bai: null })),
+    pha: "xem", dangChay: true, dung: false, loai: trangThai.bai?.loai_bai || "ngan", khoang: khoangPhut(),
+    tenNoi: [...noiDang.map((k) => k.ten), ...tenDaTao], mo: new Set(), sheet,
+  };
   veHangDoi();
-  $("#vungHangDoi").scrollIntoView({ behavior: "smooth", block: "center" });
-  for (const m of trangThai.hangDoi.ds) {
-    if (trangThai.hangDoi.dung) { m.tt = "bo_qua"; continue; }
+  $("#vungHangDoi").scrollIntoView({ behavior: "smooth", block: "start" });
+  for (const [i, m] of hd.ds.entries()) {
+    if (hd.dung || trangThai.hangDoi !== hd) break;
+    m.tt = "soan"; capNhatTT(i);
     try {
-      m.tt = "soan"; veHangDoi();
-      const bai = await goi("/trich-xuat", "POST", { url: m.link });
-      if (bai.tieu_de) m.tieu_de = bai.tieu_de; // thay đường dẫn bằng tiêu đề thật
-      const than = (l) => (bai["bai_" + l] || "").replace(/\r/g, "").trim();
-      m.tt = "dang"; veHangDoi();
+      m.bai = await goi("/trich-xuat", "POST", { url: m.link });
+      m.tt = "san_sang";
+    } catch (e) { m.tt = "loi_soan"; m.loi = e.message; m.chon = false; }
+    if (trangThai.hangDoi === hd) veHangDoi();
+  }
+  if (trangThai.hangDoi !== hd) return;
+  for (const m of hd.ds) if (m.tt === "cho_soan") { m.tt = "loi_soan"; m.loi = "Đã dừng trước khi soạn"; m.chon = false; }
+  hd.dangChay = false;
+  const ok = hd.ds.filter((m) => m.bai).length;
+  hienTT($("#ttLay"), `Đã soạn ${ok}/${hd.ds.length} bài — xem trước ở bước 4 rồi bấm Đăng.`);
+  veHangDoi();
+}
+
+// Bước B: đăng lần lượt, bài đầu đăng ngay, mỗi bài sau cách hd.khoang phút
+async function dangHangDoi() {
+  const hd = trangThai.hangDoi;
+  const ds = hd.ds.filter((m) => m.tt === "san_sang" && m.chon);
+  if (!ds.length) return;
+  if (!confirm(`Đăng ${ds.length} bài (${TEN_LOAI[hd.loai].toLowerCase()}) lên: ${hd.tenNoi.join(", ")}.\n`
+             + `Bài đầu đăng ngay, mỗi bài sau cách ${hd.khoang} phút (xong sau khoảng ${(ds.length - 1) * hd.khoang} phút).\n`
+             + `Giữ tab này mở cho tới khi xong. Tiếp tục?`)) return;
+  hd.pha = "dang"; hd.dangChay = true; hd.dung = false;
+  const daTao = daTaoChon();
+  veHangDoi();
+  for (const [n, m] of ds.entries()) {
+    const i = hd.ds.indexOf(m);
+    if (hd.dung) { m.tt = "bo_qua"; capNhatTT(i); continue; }
+    if (n > 0 && hd.khoang > 0) {
+      hd.denLuc = Date.now() + hd.khoang * 60_000;
+      m.tt = "doi"; capNhatTT(i);
+      const dongHo = setInterval(() => { const o = document.querySelector(`[data-tt="${i}"] [data-dem-nguoc]`); if (o) o.textContent = mmss(hd.denLuc - Date.now()); }, 1000);
+      while (Date.now() < hd.denLuc && !hd.dung) await doiMs(500); // so theo giờ thật: tab nền bị chậm đồng hồ vẫn đúng giờ
+      clearInterval(dongHo);
+      if (hd.dung) { m.tt = "bo_qua"; capNhatTT(i); continue; }
+    }
+    m.tt = "dang"; veHangDoi();
+    try {
+      const b = m.bai;
       const kq = await goi("/dang-bai", "POST", {
-        tieu_de: gon(bai.tieu_de), tom_tat: gon(bai.tom_tat), link_goc: bai.link_goc, anh_url: bai.anh_url,
-        loai_bai: loai, than_bai: than(loai), than_ngan: than("ngan"), than_dai: than("dai"), du_an: trangThai.duAn, da_tao: daTao,
+        tieu_de: gon(b.tieu_de), tom_tat: gon(b.tom_tat), link_goc: b.link_goc, anh_url: b.anh_url,
+        loai_bai: hd.loai, than_bai: thanMuc(m, hd.loai), than_ngan: thanMuc(m, "ngan"), than_dai: thanMuc(m, "dai"),
+        du_an: trangThai.duAn, da_tao: daTao,
       });
       m.ket_qua = kq.ket_qua;
       m.tt = "xong";
-    } catch (e) {
-      m.tt = "loi"; m.loi = e.message;
-    }
+      if (hd.sheet && m.dong) await ghiSheetMuc(hd, m);
+    } catch (e) { m.tt = "loi"; m.loi = e.message; }
     veHangDoi();
-    if (!trangThai.hangDoi.dung) await doiMs(NGHI_GIUA_BAI);
   }
-  trangThai.hangDoi.dangChay = false;
-  const ok = trangThai.hangDoi.ds.filter((m) => m.tt === "xong").length;
-  hienTT($("#ttLay"), `Đã chạy xong: ${ok}/${trangThai.hangDoi.ds.length} bài đăng được.`);
+  hd.dangChay = false;
+  const ok = ds.filter((m) => m.tt === "xong").length;
+  hienTT($("#ttLay"), `Đã chạy xong: ${ok}/${ds.length} bài đăng được.${hd.sheet ? " Link đã ghi vào sheet." : ""}`);
   veHangDoi();
+}
+
+/* ---------------- Đọc danh sách bài từ Google Sheet → đăng hàng loạt → ghi link đã đăng vào sheet ---------------- */
+const khoaSheet = () => "sheet_share:" + (trangThai.duAn || "*");
+function cauHinhSheet() { try { return JSON.parse(localStorage.getItem(khoaSheet()) || "{}"); } catch { return {}; } }
+function luuCauHinhSheet(v) { try { localStorage.setItem(khoaSheet(), JSON.stringify(v)); } catch {} }
+const colIdx = (l) => [...l].reduce((n, ch) => n * 26 + ch.charCodeAt(0) - 64, 0) - 1;
+$("#nutSheet").onclick = () => {
+  if ($("#vungSheet").innerHTML) return ($("#vungSheet").innerHTML = "");
+  const ch = cauHinhSheet();
+  $("#vungSheet").innerHTML = `
+    <div class="hop-nhieu-link">
+      <b>Đọc danh sách bài từ Google Sheet</b> — app lấy link bài ở 1 cột, đăng xong tự điền link bài đã đăng vào cột anh/chị chọn.
+      <div class="hang" style="margin-top:8px">
+        <input type="url" id="oSheetUrl" placeholder="https://docs.google.com/spreadsheets/d/…" value="${esc(ch.url || "")}" autocomplete="off">
+        <button type="button" class="nut phu" id="nutDocSheet">Đọc sheet</button>
+      </div>
+      <div class="goi-y">Dùng kết nối Google Sheets bên Trợ lý tạo social — Gmail đã kết nối phải có quyền <b>Chỉnh sửa</b> sheet này.</div>
+      <div class="trang-thai" id="ttSheet"></div>
+      <div id="vungChonSheet"></div>
+    </div>`;
+  $("#nutDocSheet").onclick = () => docSheet();
+};
+async function docSheet(gid, dongTieuDe) {
+  const url = $("#oSheetUrl").value.trim();
+  if (!/docs\.google\.com\/spreadsheets\/d\//.test(url)) return hienTT($("#ttSheet"), "Hãy dán link Google Sheet (copy trên thanh địa chỉ).", true);
+  const ch = cauHinhSheet();
+  if (gid === undefined) {
+    gid = url.match(/[#&?]gid=(\d+)/)?.[1] || (ch.url === url ? ch.gid : undefined);
+    if (ch.url === url && ch.gid === gid) dongTieuDe = ch.dongTieuDe;
+  }
+  hienTT($("#ttSheet"), "Đang đọc sheet…", false, true);
+  try {
+    const s = await goi("/sheet-doc", "POST", { url, gid, dong_tieu_de: dongTieuDe });
+    const cung = ch.url === url && ch.gid === s.tab.gid;
+    trangThai.sheet = { url, s, cotLink: (cung && ch.cotLink) || s.goi_y.cot_link, cotGhi: cung ? (ch.cotGhi ?? s.goi_y.cot_ghi) : s.goi_y.cot_ghi, boDaCo: true };
+    hienTT($("#ttSheet"), `Đã đọc tab “${s.tab.title}” — ${s.rows.length} dòng có dữ liệu.`);
+    veChonSheet();
+  } catch (e) { hienTT($("#ttSheet"), e.message, true); $("#vungChonSheet").innerHTML = ""; }
+}
+function dongSheetHopLe() {
+  const { s, cotLink, cotGhi, boDaCo } = trangThai.sheet;
+  if (!cotLink) return [];
+  const iL = colIdx(cotLink), iG = cotGhi ? colIdx(cotGhi) : -1;
+  return s.rows
+    .filter((r) => /^https?:\/\/\S+$/i.test(r.o[iL] || ""))
+    .map((r) => ({
+      dong: r.dong, link: r.o[iL], daCo: iG >= 0 && !!r.o[iG],
+      tieu_de: r.o.find((v, j) => j !== iL && j !== iG && v && !/^https?:\/\//i.test(v) && v.length > 8) || r.o[iL],
+    }))
+    .filter((r) => !(boDaCo && r.daCo));
+}
+function veChonSheet() {
+  const sh = trangThai.sheet, s = sh.s;
+  const opt = (chon, khong) => (khong ? `<option value="">${khong}</option>` : "") + s.columns.map((c) =>
+    `<option value="${c.col}"${c.col === chon ? " selected" : ""}>Cột ${c.col}${c.text ? ` · ${esc(c.text)}` : ""}${c.links ? ` (${c.links} link)` : c.sample ? ` — vd: ${esc(c.sample)}` : ""}</option>`).join("");
+  const ds = dongSheetHopLe();
+  const tongDaCo = sh.cotGhi ? s.rows.filter((r) => r.o[colIdx(sh.cotGhi)] && /^https?:\/\//i.test(r.o[colIdx(sh.cotLink || "A")] || "")).length : 0;
+  $("#vungChonSheet").innerHTML = `
+    <div class="quy-tac-dang">
+      <label>Tab <select id="shTab">${s.tabs.map((t) => `<option value="${t.gid}"${t.gid === s.tab.gid ? " selected" : ""}>${esc(t.title)}</option>`).join("")}</select></label>
+      <label>Dòng tiêu đề <input type="number" id="shDong" min="1" max="50" value="${s.headerRow}"></label>
+    </div>
+    <div class="quy-tac-dang">
+      <label>Cột link bài cần đăng <select id="shCotLink">${opt(sh.cotLink, "— chọn cột —")}</select></label>
+      <label>Ghi link đã đăng vào cột <select id="shCotGhi">${opt(sh.cotGhi, "— Không ghi vào sheet —")}</select></label>
+    </div>
+    ${sh.cotGhi ? `<label class="o-tich" style="font-size:13.5px"><input type="checkbox" id="shBoDaCo" ${sh.boDaCo ? "checked" : ""}> Bỏ qua dòng đã có link ở cột ${sh.cotGhi} (tránh đăng trùng)${tongDaCo ? ` — ${tongDaCo} dòng` : ""}</label>` : ""}
+    ${sh.cotLink === sh.cotGhi && sh.cotGhi ? `<div class="canh-bao">Cột ghi trùng cột link bài — sẽ ghi đè link bài gốc. Hãy chọn cột khác.</div>` : ""}
+    ${ds.length ? `
+      <ul class="ds-dong-sheet">${ds.map((r, i) => `<li><label class="o-tich"><input type="checkbox" data-sh="${i}" checked></label>
+        <span class="goi-y">Dòng ${r.dong}</span> <span>${esc(r.tieu_de)}</span></li>`).join("")}</ul>
+      <button type="button" class="nut nho" id="nutSoanSheet" ${sh.cotLink === sh.cotGhi && sh.cotGhi ? "disabled" : ""}>Soạn &amp; xem trước ${ds.length} bài</button>`
+    : `<div class="goi-y" style="margin-top:8px">${sh.cotLink ? "Không có dòng nào cần đăng ở cột này." : "Chọn cột chứa link bài."}</div>`}`;
+  const luu = () => luuCauHinhSheet({ url: sh.url, gid: s.tab.gid, dongTieuDe: s.headerRow, cotLink: sh.cotLink, cotGhi: sh.cotGhi });
+  $("#shTab").onchange = (e) => docSheet(e.target.value);
+  $("#shDong").onchange = (e) => docSheet(s.tab.gid, Number(e.target.value) || 1);
+  $("#shCotLink").onchange = (e) => { sh.cotLink = e.target.value; luu(); veChonSheet(); };
+  $("#shCotGhi").onchange = (e) => { sh.cotGhi = e.target.value; luu(); veChonSheet(); };
+  if ($("#shBoDaCo")) $("#shBoDaCo").onchange = (e) => { sh.boDaCo = e.target.checked; veChonSheet(); };
+  if ($("#nutSoanSheet")) $("#nutSoanSheet").onclick = () => {
+    const chon = [...$("#vungChonSheet").querySelectorAll("input[data-sh]:checked")].map((o) => ds[o.dataset.sh]);
+    if (!chon.length) return hienTT($("#ttSheet"), "Chưa tích dòng nào.", true);
+    luu();
+    batDauHangDoi(chon.map((r) => ({ tieu_de: r.tieu_de, link: r.link, dong: r.dong })),
+      sh.cotGhi ? { url: sh.url, gid: s.tab.gid, tab: s.tab.title, cotGhi: sh.cotGhi } : null);
+  };
+}
+// Ghi link đã đăng của 1 bài vào ô <cột ghi><dòng> (mỗi nơi 1 dòng trong ô)
+async function ghiSheetMuc(hd, m) {
+  const ok = (m.ket_qua || []).filter((k) => k.thanh_cong && k.duong_dan);
+  if (!ok.length) { m.sheet = "Không có link để ghi vào sheet"; return; }
+  const giaTri = ok.length === 1 ? ok[0].duong_dan : ok.map((k) => `${k.ten}: ${k.duong_dan}`).join("\n");
+  try {
+    const r = await goi("/sheet-ghi", "POST", { url: hd.sheet.url, gid: hd.sheet.gid, o: `${hd.sheet.cotGhi}${m.dong}`, gia_tri: giaTri });
+    m.sheet = `📄 Đã ghi vào ô ${r.o}`;
+  } catch (e) { m.sheet = `📄 Chưa ghi được vào sheet: ${e.message}`; }
 }
 
 /* ---------------- Danh sách tất cả bài của một mục blog ---------------- */
@@ -575,7 +846,7 @@ function veDanhSachBai(kq) {
         <label class="o-tich"><input type="checkbox" id="chonHetBai"> Chọn tất cả bài đang hiện</label>
         <button type="button" class="nut nho" id="nutDangLoat" disabled>Đăng hàng loạt</button>
       </div>
-      <div class="goi-y">Bấm tên bài để soạn từng bài, hoặc tích chọn nhiều bài rồi bấm “Đăng hàng loạt”. ${kq.tong_trang > 5 ? "Danh sách lấy tối đa 300 bài mới nhất." : ""}</div>
+      <div class="goi-y">Bấm tên bài để soạn từng bài, hoặc tích chọn nhiều bài rồi bấm “Đăng hàng loạt” — app soạn trước để xem &amp; sửa, rồi mới đăng, mỗi bài cách nhau vài phút. ${kq.tong_trang > 5 ? "Danh sách lấy tối đa 300 bài mới nhất." : ""}</div>
     </div>`;
   $("#dongDsBai").onclick = () => ($("#vungDanhSach").innerHTML = "");
   $("#locDsBai").oninput = (e) => {

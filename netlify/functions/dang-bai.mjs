@@ -245,6 +245,14 @@ export default async (req) => {
       }
     }
 
+    // Đọc sheet danh sách bài / ghi link đã đăng vào sheet — qua kết nối Google Sheets bên Trợ lý tạo social
+    if (duong === "/sheet-doc" && pt === "POST") {
+      return traJson(await goiCong(kho, "/sheet/doc", "POST", { url: String(dl.url || ""), gid: dl.gid ? String(dl.gid) : undefined, dong_tieu_de: Number(dl.dong_tieu_de) || undefined }));
+    }
+    if (duong === "/sheet-ghi" && pt === "POST") {
+      return traJson(await goiCong(kho, "/sheet/ghi", "POST", { url: String(dl.url || ""), gid: String(dl.gid || ""), o: String(dl.o || ""), gia_tri: String(dl.gia_tri || "") }));
+    }
+
     if (duong === "/du-an" && pt === "POST") {
       const ten = chuanHoa(dl.ten || "");
       if (!ten) return loi("Hãy đặt tên cho dự án.");
